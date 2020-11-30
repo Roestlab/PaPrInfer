@@ -6,6 +6,7 @@ import itertools
 import random
 import sqlite3
 import sys
+import igraph
 
 """main"""
 
@@ -20,6 +21,8 @@ def main(input_file: str, q_limit_pep: str) -> None:
     initialize(protein_peptide_graph, con, q_limit)
 
     collapse(protein_peptide_graph)
+
+    # visualize(protein_peptide_graph)
 
     component_list = separate(protein_peptide_graph)
 
@@ -40,7 +43,6 @@ def initialize(protein_peptide_graph: Graph, con,
     protein_id_list = get_all_protein_id(con)
     print("got all protein")
 
-
     protein_peptide_graph.add_peptide(peptide_id_list)
     print("added all peptide")
 
@@ -53,6 +55,7 @@ def initialize(protein_peptide_graph: Graph, con,
 
     print("initialized")
 
+
 def collapse(protein_peptide_graph: Graph) -> None:
     protein_peptide_graph.reorganize_protein_neighbours()
     print("protein_reorganized")
@@ -61,13 +64,61 @@ def collapse(protein_peptide_graph: Graph) -> None:
     print("collapsed")
 
 
+def visualize(protein_peptide_graph):
+    my_graph = protein_peptide_graph
+
+    their_graph = igraph.Graph()
+
+    # my_graph is a object with 2 dict
+    # one for protein, one for peptide
+    # the protein dict has protein as key
+    # and peptide as values
+
+    my_protein_dict = my_graph.get_protein_dict()
+    my_peptide_dict = my_graph.get_peptide_dict()
+
+    for protein_vertex in my_protein_dict:
+        accession_string = ', '.join(map(str, protein_vertex.get_accession()))
+        their_graph.add_vertex(accession_string)
+        print(accession_string)
+
+    for peptide_vertex in my_peptide_dict:
+        id_string = ', '.join(map(str, peptide_vertex.get_id()))
+        their_graph.add_vertex(id_string)
+        print(id_string)
+
+    print(their_graph.vs["name"])
+
+    print("vertex done")
+
+    protein_number = 1
+    peptide_number = 1
+    for protein_key in my_protein_dict.keys():
+        accession_string = ', '.join(map(str, protein_key.get_accession()))
+        print("protein number", protein_number)
+        for peptide_value in my_protein_dict[protein_key]:
+            id_string = ', '.join(map(str, peptide_value.get_id()))
+            print("peptide number", peptide_number)
+            their_graph.add_edge(accession_string, id_string)
+            peptide_number += 1
+        protein_number += 1
+
+
+    print("edges done")
+
+    layout = my_graph.layout_bipartite()
+    print("layout done")
+    plot = igraph.plot(their_graph, vertex_label=their_graph.vs["name"],
+                       layout=layout)
+    print("plot done")
+    plot.show()
+
+
 def separate(protein_peptide_graph: Graph) -> List[Component]:
     # for all white peptide nodes, explore them
     component_list = []
     component_counter = 0
     for current_peptide in protein_peptide_graph.get_peptide_dict_keys():
-        if current_peptide.get_id() == [19465]:
-            print("peptide color", current_peptide.get_color())
         if current_peptide.get_color() == 0:  # if it is white
             a_component = Component()
             protein_peptide_graph.dfs(current_peptide, a_component)
@@ -85,6 +136,10 @@ def reduce(component_list: List[Component], con) -> None:
         # this is a list of list of protein accession
         # sublist is one meta-protein vertex, contain multiple protein accession
         component_accession_list = component.make_protein_list()
+        for vertex in component_accession_list:
+            if "Q8NE01" in vertex:
+                print(vertex)
+                print(component_accession_list)
 
         # this just a list of list of list of protein accession
         # sublist of it all belongs to the same component
@@ -244,6 +299,12 @@ class Node:
 
     def get_color(self) -> int:
         return self._color
+
+    def is_white(self) -> bool:
+        if self.get_color() == 0:
+            return True
+        else:
+            return False
 
     def set_color(self, color: int) -> None:
         if not (color == 1 or color == 2):
@@ -428,12 +489,12 @@ class Component:
 
     def make_protein_list(self) -> List[List[str]]:
 
-        min_pro_list = []
+        component_min_pro_list = []
 
         while not self.all_component_peptides_covered():
             # select the protein with the most edges to uncovered peptide
             currently_selected_protein = self._find_most_uncovered_protein()
-            min_pro_list.append(currently_selected_protein)
+            component_min_pro_list.append(currently_selected_protein)
 
             # set the peptide that has edges to this selected protein as covered
             will_cover_peptide = self._protein_dict[currently_selected_protein]
@@ -441,21 +502,18 @@ class Component:
                 current_peptide.set_covered()
 
         component_accession_list = []
-        # min_pro_list is a list of protein that are selected
+        # component_min_pro_list is a list of protein that are selected
         # each protein contain their own accession list (list of str)
         # collecting them into the component_accession_list
         # would a list of list of str
         # where each sublist is the belong to the same protein object
-        for current_protein in min_pro_list:
+        for current_protein in component_min_pro_list:
             component_accession_list.append(current_protein.get_accession())
 
         return component_accession_list
 
     def _find_most_uncovered_protein(self) -> Protein:
 
-        # print(len(self._protein_dict.keys()))
-        # for peptide in self._peptide_dict.keys():
-        #     print(peptide.get_id())
         # pick any protein from the a_component
         most_edges_protein = random.choice(list(self._protein_dict.keys()))
 
@@ -510,6 +568,12 @@ class Graph:
     def get_peptide_dict_keys(self):
         return self._peptide_dict.keys()
 
+    def get_protein_dict(self):
+        return self._protein_dict
+
+    def get_peptide_dict(self):
+        return self._peptide_dict
+
     """methods for step 1: initialize"""
 
     def add_protein(self, con, protein_id_list: List[int]) -> None:
@@ -519,14 +583,9 @@ class Graph:
                 current_protein = Protein([protein_accession], protein_id)
                 if self.is_protein_key(current_protein):
                     self.make_edge_for_this_protein_id(con, current_protein)
-                    # print("is protein key")
                 else:
                     self._protein_dict[current_protein] = []
                     self.make_edge_for_this_protein_id(con, current_protein)
-                     #("is not protein key")
-                # if current_protein.get_accession() == ['P11310']:
-                #     print("this is the id", current_protein.get_first_id())
-                # print("accession", current_protein.get_accession())
 
     def add_peptide(self, peptide_id_list: List[int]) -> None:
 
@@ -540,17 +599,12 @@ class Graph:
 
     def make_edge_for_this_protein_id(self, con, the_protein: Protein) -> None:
         protein_id = the_protein.get_first_id()
-        # print(protein_id)
         neighbour_list_pep = get_link_for_protein(con, protein_id)
         # neighbour list is just a list of peptide ids
         for neighbour_id in neighbour_list_pep:
-            # print(neighbour_id)
             a_peptide = Peptide([neighbour_id])
             if self.is_peptide_key(a_peptide):
-                # print("it is a peptide key")
                 self._protein_dict[the_protein].append(a_peptide)
-
-        # print("the length is", self._protein_dict[the_protein])
 
     def make_edges_from_peptide(self, con) -> None:
         """
@@ -608,8 +662,6 @@ class Graph:
             # which are proteins
             current_neighbours = self._peptide_dict[current_peptide]
 
-            # print("id", current_peptide.get_id())
-
             # if there are more than 2 protein neighbours
             if len(current_neighbours) >= 2:
 
@@ -618,6 +670,8 @@ class Graph:
 
                 # then use that to check mergeability
                 self.check_for_mergeable_protein(neighbours_reorganized)
+
+            print("peptide done", current_peptide.get_first_id())
 
     def compare_protein_neighbours(self, protein_pair: Tuple[Protein, ...])\
             -> bool:
@@ -654,18 +708,19 @@ class Graph:
                     self.delete_protein(protein_neighbour_pair[1])
                     accession_list = protein_neighbour_pair[1].get_accession()
                     protein_neighbour_pair[0].add_accession(accession_list)
+                    self.add_accession_pro_key(protein_neighbour_pair[0], accession_list)
+
+    def add_accession_pro_key(self, same_protein: Protein, accession_list):
+        for protein_key in self._protein_dict:
+            if same_protein.get_first_accession() == protein_key.get_first_accession():
+                protein_key.add_accession(accession_list)
+
 
     def delete_protein(self, current_protein: Protein) -> None:
 
-        #print("accession", current_protein.get_accession())
-
         # remove it as any peptide's neighbour
         peptide_neighbour_list = self._protein_dict[current_protein]
-        #print("the length is", len(peptide_neighbour_list))
         for peptide_neighbour in peptide_neighbour_list:
-            #print(peptide_neighbour.get_id())
-            # if current_protein.get_accession() == ['Q16543']:
-            #     print("this is first id", peptide_neighbour.get_first_id())
             protein_neighbour_list = self._peptide_dict[peptide_neighbour]
             protein_neighbour_list.remove(current_protein)
 
@@ -720,6 +775,8 @@ class Graph:
 
                 self.check_for_mergeable_peptide(neighbour_reformatted)
 
+            print("protein done", current_protein.get_first_accession())
+
     def compare_peptide_neighbours(self, peptide_pair: Tuple[Peptide, ...])\
             -> bool:
         """
@@ -747,7 +804,6 @@ class Graph:
         max_edges = 0
 
         for current_protein in protein_list:
-            # print("accession", current_protein.get_accession())
             peptide_neighbour_list = self._protein_dict[current_protein]
             if len(peptide_neighbour_list) > max_edges:
                 max_edges = len(peptide_neighbour_list)
@@ -810,6 +866,19 @@ class Graph:
                         self.delete_peptide(peptide_neighbour_pair[1])
                         id_list = peptide_neighbour_pair[1].get_id()
                         peptide_neighbour_pair[0].add_id(id_list)
+                        self.add_id_pep_key(peptide_neighbour_pair[0], id_list)
+
+    def add_id_pep_key(self, same_peptide: Peptide, id_list):
+        """
+        it should work, because the one peptide that has matching first id
+        with the deleted peptide, is deleted
+        :param same_peptide:
+        :param id_list:
+        :return:
+        """
+        for peptide_key in self._peptide_dict:
+            if same_peptide.get_first_id() == peptide_key.get_first_id():
+                peptide_key.add_id(id_list)
 
     def delete_peptide(self, current_peptide: Peptide) -> None:
         """
@@ -877,11 +946,10 @@ class Graph:
         neighbour_list = []
 
         self.set_discovered(start_node)
-        # TODO need to set other start node as discovered too
+        # need to set other start node as discovered too
         #  because it has a different memory address
         #  it can exist as a neighbour of other node
         #  or a key node
-
 
         # if protein, get a peptide list, if peptide get a protein list
         if isinstance(start_node, Protein):
@@ -889,17 +957,9 @@ class Graph:
         elif isinstance(start_node, Peptide):
             neighbour_list = self._peptide_dict.get(start_node)
 
-        if start_node.get_id() == [19465]:
-            print("len is", len(neighbour_list))
-            for n in neighbour_list:
-                print(n.get_accession())
-            print(start_node.get_color())
-
         # for all neighbouring white node, explore them
         for current_neighbouring_node in neighbour_list:
-            # if start_node.get_id() == [19465]:
-            #     print("accession is", current_neighbouring_node.get_accession())
-            if current_neighbouring_node.get_color() == 0:
+            if current_neighbouring_node.is_white():
                 self.dfs(current_neighbouring_node, a_component)
 
         self.set_explored(start_node)
