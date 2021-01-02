@@ -1,5 +1,5 @@
 import unittest
-import ppi
+from src import ppi
 
 
 class TestInitialization(unittest.TestCase):
@@ -75,7 +75,7 @@ class TestPPI(unittest.TestCase):
         # neighbours of pro1
         peptide_list = [pep4, pep3, pep7, pep9, pep8]
 
-        reformatted_protein_neighbours = graph_1.reformat_pro(protein_list)
+        reformatted_protein_neighbours = graph_1.reorder_neighbours(protein_list)
         reformatted_peptide_neighbours = graph_1.reformat_pep(peptide_list)
 
         for i in range(1, len(reformatted_protein_neighbours)):
@@ -271,7 +271,7 @@ class TestPPI(unittest.TestCase):
         self.assertEqual(component_1.find_num_uncovered_peptides(pro_1), 3)
         self.assertEqual(component_1._find_most_uncovered_protein(), pro_1)
 
-        self.assertEqual(component_1.make_protein_list(), [pro_1.get_id()])
+        self.assertEqual(component_1.make_protein_list(), [pro_1.get_sqlite_id()])
 
         # now the peptide neighbours of pro1 should be set as covered
         self.assertTrue(pep_3_7_9.is_covered())
@@ -295,7 +295,7 @@ class TestPPI(unittest.TestCase):
 
         self.assertEqual(
             component_2.make_protein_list().sort(),
-            [pro_4_9.get_id(), pro_6.get_id()].sort()
+            [pro_4_9.get_sqlite_id(), pro_6.get_sqlite_id()].sort()
         )
 
         self.assertTrue(pep_2.is_covered())
@@ -306,7 +306,7 @@ class TestPPI(unittest.TestCase):
         self.assertEqual(component_3.find_num_uncovered_peptides(pro_7), 1)
         self.assertEqual(component_3._find_most_uncovered_protein(), pro_7)
 
-        self.assertEqual(component_3.make_protein_list(), [pro_7.get_id()])
+        self.assertEqual(component_3.make_protein_list(), [pro_7.get_sqlite_id()])
 
         self.assertTrue(pep_1_5.is_covered())
 

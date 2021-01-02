@@ -68,7 +68,7 @@
 
 # class peptides extends nodes
     # === attributes ===
-        # PSM data
+        # PSM data and result
         # covered
             # this is for 4: reduce, it say whether or not
             # the peptide is covered by a protein that is selected)
@@ -132,7 +132,7 @@
 
 # 1. initialize
 
-    # I am not sure about the ProteinIdentification object's data structure
+    # I am not sure about the ProteinIdentification object's data and result structure
     # but it seems like it contain mutiple protein hits objects
     # same thing applies to PeptideIdentification and peptide hits
 
@@ -152,7 +152,7 @@
     # do that for all protein hits objects
 
     # for all peptide hits
-    # read their PSM data (Peptide-spectrum match)
+    # read their PSM data and result (Peptide-spectrum match)
     # and make a peptide node
     # append it to the graph's peptide dict
     # for each peptide hits, loop over its peptide evidence objects
@@ -217,7 +217,7 @@
     # make a list (minimal_protein_list), and then for each make_protein_list, append the result
 
     # make_protein_list
-    # protein_list = a new empty list
+    # node_list = a new empty list
     # While not (all_peptides_covered)
         # find_protein_most_edges
         # append that protein into the protein_List
