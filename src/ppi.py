@@ -21,7 +21,7 @@ def main(input_file: str, q_limit_pep: str) -> None:
 
     initialize(protein_peptide_graph, con, q_limit)
 
-    # collapse(protein_peptide_graph)
+    collapse(protein_peptide_graph)
 
     # visualize(protein_peptide_graph)
 
@@ -30,11 +30,7 @@ def main(input_file: str, q_limit_pep: str) -> None:
     # for component in component_list:
     #     visualize_component(component)
 
-    visualize_component(component_list[32])
-    visualize_component(component_list[33])
-    visualize_component(component_list[34])
-
-    # reduce(component_list, con)
+    reduce(component_list, con)
 
     end_connection(con)
 

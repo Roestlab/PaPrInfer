@@ -3,7 +3,7 @@ from src import ppi
 
 
 class TestInitialization(unittest.TestCase):
-    def test_something(self):
+    def test_(self):
 
         example_graph = ppi.Graph()
         accession_List = [
