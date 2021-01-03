@@ -2,37 +2,37 @@ import unittest
 from src import ppi
 
 
-class TestInitialization(unittest.TestCase):
-    def test_(self):
-
-        example_graph = ppi.Graph()
-        accession_List = [
-            "1", "2", "3", "4"
-        ]
-
-        self.assertEqual(True, False)
-
-
-class TestCollpase(unittest.TestCase):
-    pass
-
-
-class TestSeperate(unittest.TestCase):
-    pass
+# class TestInitialization(unittest.TestCase):
+#     def test_(self):
+#
+#         example_graph = ppi.Graph()
+#         accession_List = [
+#             "1", "2", "3", "4"
+#         ]
+#
+#         self.assertEqual(True, False)
+#
+#
+# class TestCollpase(unittest.TestCase):
+#     pass
+#
+#
+# class TestSeperate(unittest.TestCase):
+#     pass
 
 class TestPPI(unittest.TestCase):
 
     def test_collapse(self):
         graph_1 = ppi.Graph()
-        pro1 = ppi.Protein([1])
-        pro2 = ppi.Protein([2])
-        pro3 = ppi.Protein([3])
-        pro4 = ppi.Protein([4])
-        pro5 = ppi.Protein([5])
-        pro6 = ppi.Protein([6])
-        pro7 = ppi.Protein([7])
-        pro8 = ppi.Protein([8])
-        pro9 = ppi.Protein([9])
+        pro1 = ppi.Protein(['1'], 1)
+        pro2 = ppi.Protein(['2'], 1)
+        pro3 = ppi.Protein(['3'], 1)
+        pro4 = ppi.Protein(['4'], 1)
+        pro5 = ppi.Protein(['5'], 1)
+        pro6 = ppi.Protein(['6'], 1)
+        pro7 = ppi.Protein(['7'], 1)
+        pro8 = ppi.Protein(['8'], 1)
+        pro9 = ppi.Protein(['9'], 1)
 
         pep1 = ppi.Peptide([1])
         pep2 = ppi.Peptide([2])
@@ -45,26 +45,26 @@ class TestPPI(unittest.TestCase):
         pep9 = ppi.Peptide([9])
         pep10 = ppi.Peptide([10])
 
-        graph_1._protein_dict[pro1] = [pep4, pep3, pep7, pep9, pep8]
-        graph_1._protein_dict[pro2] = [pep8]
-        graph_1._protein_dict[pro3] = [pep6]
-        graph_1._protein_dict[pro4] = [pep2, pep10]
-        graph_1._protein_dict[pro5] = [pep4, pep8]
-        graph_1._protein_dict[pro6] = [pep2, pep6]
-        graph_1._protein_dict[pro7] = [pep1, pep5]
-        graph_1._protein_dict[pro8] = [pep8]
-        graph_1._protein_dict[pro9] = [pep2, pep10]
+        graph_1.node_dict[pro1] = [pep4, pep3, pep7, pep9, pep8]
+        graph_1.node_dict[pro2] = [pep8]
+        graph_1.node_dict[pro3] = [pep6]
+        graph_1.node_dict[pro4] = [pep2, pep10]
+        graph_1.node_dict[pro5] = [pep4, pep8]
+        graph_1.node_dict[pro6] = [pep2, pep6]
+        graph_1.node_dict[pro7] = [pep1, pep5]
+        graph_1.node_dict[pro8] = [pep8]
+        graph_1.node_dict[pro9] = [pep2, pep10]
 
-        graph_1._peptide_dict[pep1] = [pro7]
-        graph_1._peptide_dict[pep2] = [pro4, pro6, pro9]
-        graph_1._peptide_dict[pep3] = [pro1]
-        graph_1._peptide_dict[pep4] = [pro1, pro5]
-        graph_1._peptide_dict[pep5] = [pro7]
-        graph_1._peptide_dict[pep6] = [pro3, pro6]
-        graph_1._peptide_dict[pep7] = [pro1]
-        graph_1._peptide_dict[pep8] = [pro1, pro5, pro2, pro8]
-        graph_1._peptide_dict[pep9] = [pro1]
-        graph_1._peptide_dict[pep10] = [pro4, pro9]
+        graph_1.node_dict[pep1] = [pro7]
+        graph_1.node_dict[pep2] = [pro4, pro6, pro9]
+        graph_1.node_dict[pep3] = [pro1]
+        graph_1.node_dict[pep4] = [pro1, pro5]
+        graph_1.node_dict[pep5] = [pro7]
+        graph_1.node_dict[pep6] = [pro3, pro6]
+        graph_1.node_dict[pep7] = [pro1]
+        graph_1.node_dict[pep8] = [pro1, pro5, pro2, pro8]
+        graph_1.node_dict[pep9] = [pro1]
+        graph_1.node_dict[pep10] = [pro4, pro9]
 
         """testing reorganized_protein_neighbours and peptides
         important thing to check about reorganize neighbours: that it does
