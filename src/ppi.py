@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Dict, List, Tuple
-from abc import abstractmethod
-
 import itertools
 import random
 import sqlite3
 import sys
-import igraph
+from abc import abstractmethod
+from typing import Dict, List, Tuple
+
+# import igraph
 
 """main"""
 
@@ -72,7 +72,7 @@ def initialize(protein_peptide_graph: Graph, con,
 
 
 def collapse(protein_peptide_graph: Graph) -> None:
-    protein_peptide_graph.collpase_graph()
+    protein_peptide_graph.collapse_graph()
 
 
 def visualize(protein_peptide_graph):
@@ -97,8 +97,8 @@ def visualize(protein_peptide_graph):
     protein_number = 1
     peptide_number = 1
     for key, value in my_node_dict.items():
-        if key.get_first_id() not in my_graph.node_to_delete and isinstance(key,
-                                                                            Protein):
+        if key.get_first_id() not in my_graph.node_to_delete and \
+                isinstance(key, Protein):
             vertex_string_1 = ', '.join(map(str, key.get_id()))
             print("protein number", protein_number, "got protein vertex")
             for element in value:
@@ -143,7 +143,7 @@ def separate(protein_peptide_graph: Graph) -> List[Component]:
 def visualize_component(component):
     """
     all nodes in a component are assumed to be not deleted
-    :param component_list:
+    :param component:
     :return:
     """
 
@@ -154,21 +154,19 @@ def visualize_component(component):
     # the protein dict has protein as key
     # and peptide as values
 
-    for vertex in component._protein_dict:
+    for vertex in component.protein_dict:
         my_string = ', '.join(map(str, vertex.get_id()))
-        their_graph.add_vertex(my_string, type = False)
+        their_graph.add_vertex(my_string, type=False)
     print("protein done")
 
-    for vertex in component._peptide_dict:
+    for vertex in component.peptide_dict:
         my_string = ', '.join(map(str, vertex.get_id()))
-        their_graph.add_vertex(my_string, type = True)
+        their_graph.add_vertex(my_string, type=True)
     print("protein done")
-
-
 
     protein_number = 1
     peptide_number = 1
-    for key, value in component._protein_dict.items():
+    for key, value in component.protein_dict.items():
         vertex_string_1 = ', '.join(map(str, key.get_id()))
 
         for element in value:
@@ -183,8 +181,8 @@ def visualize_component(component):
 
     layout = their_graph.layout_bipartite()
     print("layout done")
-    plot = igraph.plot(their_graph, vertex_label=their_graph.vs["name"],
-                       layout=layout)
+    igraph.plot(their_graph, vertex_label=their_graph.vs["name"],
+                layout=layout)
     print("plot done")
 
 
@@ -282,7 +280,7 @@ def get_all_peptide(con, q_limit: int) -> List[int]:
 
     # TODO if i ever want to select only peptide or protein that fit a certain
     #  properties, use c.execute("SELECT * WHERE value=3 AND keyword=1")
-    #  smth like that, note this data and result is in SCORE_PROTEIN or SCORE_PEPTIDE
+    #  like that, note this data and result is in SCORE_PROTEIN or SCORE_PEPTIDE
 
 
 def get_link_for_protein(con, protein_sqlite_id: int) -> List[int]:
@@ -522,26 +520,39 @@ class Peptide(Node):
 
 
 class Component:
-    _protein_dict: Dict[Protein, List[Peptide]]
-    _peptide_dict: Dict[Peptide, List[Protein]]
+    """
+    this is a representation of the connected component of graph theory
+    """
+    protein_dict: Dict[Protein, List[Peptide]]
+    peptide_dict: Dict[Peptide, List[Protein]]
     _covered_peptide: dict
 
     def __init__(self):
-        self._protein_dict = {}
-        self._peptide_dict = {}
+        self.protein_dict = {}
+        self.peptide_dict = {}
         self._covered_peptide = {}
 
     def add_peptide(self, current_peptide: Peptide,
                     neighbours) -> None:
+        """
+        add current_peptide to this component
+        """
 
-        self._peptide_dict[current_peptide] = neighbours
+        self.peptide_dict[current_peptide] = neighbours
 
     def add_protein(self, current_protein: Protein,
                     neighbours) -> None:
+        """
+        add current_protein to this component
+        """
 
-        self._protein_dict[current_protein] = neighbours
+        self.protein_dict[current_protein] = neighbours
 
     def make_protein_list(self) -> List[List[str]]:
+        """
+        find the minimal protein list of this component
+        :return:
+        """
 
         component_min_pro_list = []
 
@@ -553,7 +564,7 @@ class Component:
 
             # set the peptide that has edges to this selected protein as covered
             # that is add it to the covered peptide dict
-            will_cover_peptide = self._protein_dict[currently_selected_protein]
+            will_cover_peptide = self.protein_dict[currently_selected_protein]
             for current_peptide in will_cover_peptide:
                 self._covered_peptide[current_peptide.get_first_id()] = ''
 
@@ -569,15 +580,21 @@ class Component:
         return component_accession_list
 
     def _find_most_uncovered_protein(self) -> Protein:
+        """
+        find the protein that could cover the greatest number of uncovered
+        peptides using find_num_uncovered_peptides excluding the protein that
+        are already selected
+        :return:
+        """
 
         # pick any protein from the a_component
-        most_edges_protein = random.choice(list(self._protein_dict.keys()))
+        most_edges_protein = random.choice(list(self.protein_dict.keys()))
 
         # record its number of edges
         most_uncovered = self.find_num_uncovered_peptides(most_edges_protein)
 
-        # loop over the proteins of a a_component
-        for current_protein in self._protein_dict.keys():
+        # loop over the proteins of the component
+        for current_protein in self.protein_dict.keys():
 
             # of all the protein that are not selected, find the one with
             # the most edges (to peptides)
@@ -594,8 +611,12 @@ class Component:
         return most_edges_protein
 
     def find_num_uncovered_peptides(self, current_protein: Protein) -> int:
+        """:param
+        find the number of peptides that are uncovered for current_protein
+        after excluding peptides that are covered by other selected proteins
+        """
         num_uncovered_peptides = 0
-        peptide_neighbours = self._protein_dict[current_protein]
+        peptide_neighbours = self.protein_dict[current_protein]
         for current_peptide in peptide_neighbours:
             if current_peptide.get_first_id() in self._covered_peptide:
                 continue
@@ -604,10 +625,15 @@ class Component:
         return num_uncovered_peptides
 
     def all_component_peptides_covered(self) -> bool:
+        """:param
+        check if all the peptides in this component is covered by protein
+        that are selected
+        """
+
         all_covered = True
 
         # find if any peptide is not yet covered
-        for peptide in self._peptide_dict:
+        for peptide in self.peptide_dict:
             if peptide.get_first_id() not in self._covered_peptide:
                 all_covered = False
 
@@ -616,8 +642,8 @@ class Component:
 
 class Graph:
     """
-    The node_to_delete, discovered_nodes, explored_nodes with key as the first id
-    of the node, and an empty string as value
+    The node_to_delete, discovered_nodes, explored_nodes with key as the first
+    id of the node, and an empty string as value
     """
     node_dict: Dict[Node, List[Node]]
     node_to_delete: Dict[int, str]
@@ -641,6 +667,9 @@ class Graph:
     """methods for step 1: initialize"""
 
     def add_peptide(self, peptide_id_list: List[int]) -> None:
+        """
+        add the peptide from the peptide_id_list into the graph
+        """
 
         # for every peptide that is a hit
         for peptide_id in peptide_id_list:
@@ -655,9 +684,6 @@ class Graph:
         because in the sqlite database, 1 protein sqlite id correspond to
         multiple protein accessions, and they may overlap (a protein accession
         can exist in multiple protein sqlite ids)
-        :param con:
-        :param protein_id_list:
-        :return:
         """
         for protein_id in protein_id_list:
             protein_accession_list = get_protein_accession(con, protein_id)
@@ -672,9 +698,6 @@ class Graph:
     def make_edge_from_protein_id(self, con, the_protein: Protein) -> None:
         """
         use the protein id given, add peptides as edges to the current protein
-        :param con:
-        :param the_protein:
-        :return:
         """
 
         protein_id = the_protein.get_first_sqlite_id()
@@ -691,8 +714,6 @@ class Graph:
         times there is only one link), for each link, get all the accessions.
         for each accession, make a protein object, check if is a protein key,
         then add it to this peptide keys's value
-        :param con: connection to the sqlite database
-        :return:
         """
         for node in self.node_dict:
             if isinstance(node, Peptide):
@@ -707,8 +728,6 @@ class Graph:
     def node_in_graph(self, a_node: Node):
         """
         check if this node is in the graph
-        :param a_node: this node to be check
-        :return: whether or not the node is in the graph (boolean)
         """
         if self.get_node_dict().get(a_node) is None:
             in_graph = False
@@ -719,7 +738,11 @@ class Graph:
 
     """methods for step 2: collapse"""
 
-    def collpase_graph(self) -> None:
+    def collapse_graph(self) -> None:
+        """
+        take neighbours of each node and call reorder_neighbours on it
+        if necessary
+        """
 
         # for each node
         progress_count = 1
@@ -733,13 +756,13 @@ class Graph:
             # current neighbours: neighbours of the current node
             current_neighbours = value
 
-            # so uh, actually some nodes are deleted right
+            # TODO: so uh, actually some nodes are deleted right
             # I could just skip checking its neighbour?
 
             # if there are more than 2 neighbours
             if len(current_neighbours) >= 2:
 
-                # acually reorganize the neighbours
+                # actually reorganize the neighbours
                 neighbours_reorganized = self.reorder_neighbours(
                     current_neighbours)
 
@@ -752,7 +775,11 @@ class Graph:
 
     """methods for step 2a: reordering"""
 
-    def find_node_most_edges(self, node_list: List[Node]) -> int:
+    def find_num_max_edges(self, node_list: List[Node]) -> int:
+        """
+        find the number of neighbours for the node with the most neighbours
+        """
+
         max_edges = 0
 
         for current_node in node_list:
@@ -762,22 +789,17 @@ class Graph:
 
         return max_edges
 
-    def num_neighbour(self, node: Node) -> int:
-        return len(self.node_dict[node])
-
     def reorder_neighbours(self, current_neighbours: List[Node]) \
             -> List[List[Node]]:
         """
-        take the list of protein, current_neighbours and reformat it into a
-        list of list of protein where every protein in each sublist has the same
-        number of neighbours, which is returned
-        :param current_neighbours:
-        :return: neighbours_reorganized
+        take the list of node, current_neighbours and reformat it into a
+        list of list of node where every protein in each sublist has the same
+        number of neighbours
         """
 
         neighbours_reorganized = []
 
-        num_most_edges = self.find_node_most_edges(current_neighbours)
+        num_most_edges = self.find_num_max_edges(current_neighbours)
 
         # append as many list as num_most_edges
         # where num_most_edges is the greatest number of
@@ -786,13 +808,12 @@ class Graph:
             neighbours_reorganized.append([])
 
         # for all neighbour
-        for current_protein in current_neighbours:
+        for current_node in current_neighbours:
             # find num of neighbours for current node
-            num_peptide_neighbours = self.num_neighbour(
-                current_protein)
+            num_neighbours = len(self.node_dict[current_node])
             # append them to the list of list appropriately
             neighbours_reorganized[
-                num_peptide_neighbours].append(current_protein)
+                num_neighbours].append(current_node)
 
         return neighbours_reorganized
 
@@ -800,11 +821,16 @@ class Graph:
 
     def check_for_merging(self, neighbours_reorganized: List[List[Node]]) \
             -> None:
+        """
+        check neighbours_reorganized for nodes that are possible to merge
+        """
+
         # all the protein neighbours in the same protein_neighbour_list
         # should have the same length
         for neighbour_list in neighbours_reorganized:
             for neighbour_pair in itertools.combinations(neighbour_list, 2):
                 # if both nodes are not deleted, then compare them.
+                # and if they have the same neighbours then execute the case
                 if (
                         neighbour_pair[
                             0].get_first_id() not in self.node_to_delete
@@ -824,9 +850,8 @@ class Graph:
     def compare_neighbours(self, node_pair: Tuple[Node, ...]) \
             -> bool:
         """
-        if either one is None, return false
-        :param node_pair: the pair of node to be compared
-        :return: True if the neighbour of the node pair are the same
+        compare the neighbours of the nodes in the pair
+        if either node is None, return false
         """
         this_node = node_pair[0]
         that_node = node_pair[1]
@@ -841,38 +866,66 @@ class Graph:
             return these_neighbours == those_neighbours
 
     def delete_node(self, current_node: Node) -> None:
+        """
+        delete current node from the graph
+        """
 
         # store the id of the node into the "node_to_delete" dict
         # with an empty string
         self.node_to_delete[current_node.get_first_id()] = ''
 
-    def key_add_id(self, same_protein: Node, accession_list):
+    # TODO: find a way to not have to use this method
+
+    def key_add_id(self, same_protein: Node, id_list):
+        """
+        add protein accession(s) or peptide id(s) from the deleted protein or
+        peptide to the other indistinguishable protein or peptide
+        there is another one because the neighbour pair exist as values
+        in the node dict not keys
+        """
         for key in self.node_dict.keys():
             if key == same_protein:
-                key.add_id(accession_list)
+                key.add_id(id_list)
 
     """methods for step 3: separate"""
 
     def set_discovered(self, start_node: Node) -> None:
+        """
+        set this node as discovered
+        """
         self.discovered_nodes[start_node.get_first_id()] = ''
 
     def set_explored(self, start_node: Node) -> None:
+        """
+        set this node as explored
+        """
         self.explored_nodes[start_node.get_first_id()] = ''
 
     def is_white(self, node: Node) -> bool:
-        # print("discovered", node.get_first_id() in self.discovered_nodes)
-        # print("explored", node.get_first_id in self.explored_nodes)
+        """
+        check if this node is undiscovered and unexplored
+        """
 
         return (node.get_first_id() not in self.discovered_nodes) \
                and (node.get_first_id not in self.explored_nodes)
 
-    def is_discoverd(self, node) -> bool:
+    def is_discovered(self, node) -> bool:
+        """
+        check if this node is discovered
+        """
         return node.get_first_id() in self.discovered_nodes
 
     def is_explored(self, node) -> bool:
+        """
+        check if this node is explored
+        """
         return node.get_first_id() in self.explored_nodes
 
     def dfs(self, start_node: Node, a_component: Component) -> None:
+        """
+        Performs depth first search start with start_node, then added
+        the explored nodes to a_component
+        """
 
         self.set_discovered(start_node)
 
@@ -882,7 +935,8 @@ class Graph:
         # for all neighbouring white node, explore them
         for current_neighbour in neighbour_list:
             if self.is_white(current_neighbour) \
-                    and current_neighbour.get_first_id() not in self.node_to_delete:
+                    and current_neighbour.get_first_id() not in \
+                    self.node_to_delete:
                 self.dfs(current_neighbour, a_component)
 
         self.set_explored(start_node)

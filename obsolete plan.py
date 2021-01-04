@@ -48,12 +48,12 @@
 # # Iterate over its PeptideEvidences objects
             # for evidence in peptide_hit.getPeptideEvidences():
             #     # and find the protein corresponding to evidence, by accession
-            #     for current_protein in self._protein_dict.keys():
+            #     for current_protein in self.protein_dict.keys():
             #         if current_protein.get_accession() == evidence.getProteinAccession():
             #             # then append it to the protein edges of this peptide
-            #             self._peptide_dict[current_peptide].append(current_protein)
+            #             self.peptide_dict[current_peptide].append(current_protein)
             #             # also append this peptide to the peptide edges of this protein
-            #             self._protein_dict[current_protein].append(current_peptide)
+            #             self.protein_dict[current_protein].append(current_peptide)
             #             break
 
             # actually what if there is a protein in peptideEvidence, but not
@@ -80,7 +80,7 @@
 #     a_component.add_protein()
 #
 #     # for all white neighbouring peptides, explore them
-#     for current_neighbouring_peptide in self._protein_dict[start_node]:
+#     for current_neighbouring_peptide in self.protein_dict[start_node]:
 #         if current_neighbouring_peptide.get_color() == 0:
 #             self.dfs_peptide(current_neighbouring_peptide, a_component)
 #
