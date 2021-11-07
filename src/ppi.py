@@ -13,6 +13,9 @@ from node import Peptide, Protein
 
 
 def main(input_file: str, q_limit_pep: str, context: str, run_id: str) -> None:
+
+    assert context == 'global' or context == 'run-specific'
+
     con = begin_connection(input_file)
 
     run_id = int(run_id)
@@ -23,7 +26,7 @@ def main(input_file: str, q_limit_pep: str, context: str, run_id: str) -> None:
 
     initialize(protein_peptide_graph, con, q_limit_pep, context, run_id)
 
-    collapse(protein_peptide_graph)
+    # collapse(protein_peptide_graph)
 
     # visualize(protein_peptide_graph)
 
@@ -252,7 +255,7 @@ def get_all_protein_id(con, context: str, run_id: int) -> List[Tuple[str, int]]:
             """SELECT PROTEIN_ID, DECOY
             FROM SCORE_PROTEIN 
             INNER JOIN PROTEIN ON SCORE_PROTEIN.PROTEIN_ID = PROTEIN.ID
-            WHERE CONTEXT='run-specific' AND RUN_ID=:run_id""", {'run_id', run_id})
+            WHERE CONTEXT='run-specific' AND RUN_ID=:run_id""", {"run_id": run_id})
     all_protein_id_list = []
     for row in c.fetchall():
         all_protein_id_list.append((str(row[0]), row[1]))
@@ -424,14 +427,15 @@ def protein_group_data_entry(con, min_pro_list: List[List[Tuple[
         component_id += 1
     c.close()
 
+
 def end_connection(con) -> None:
     con.close()
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 5:
         print("""usage: ParsimoniousProteinInferencer.py <sql file path>
-              <q-value threshold for peptides>""")
+              <q-value threshold for peptides> <context> <run id>""")
     # input_file path, q_limit_pep, context, run_id
     # if context is global, run_id can be anything
     main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
