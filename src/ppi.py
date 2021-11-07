@@ -1,34 +1,33 @@
 from __future__ import annotations
 
-import itertools
-import random
+from typing import Any, Dict, List, Tuple
+
 import sqlite3
 import sys
-from abc import abstractmethod
-from typing import Dict, List, Tuple
-
 # import igraph
+from graph import Graph
+from components import Component
+from node import Peptide, Protein
 
 """main"""
 
 
-def main(input_file: str, q_limit_pep: str) -> None:
+def main(input_file: str, q_limit_pep: str, context: str, run_id: str) -> None:
     con = begin_connection(input_file)
 
-    q_limit = (int(q_limit_pep))
+    run_id = int(run_id)
+
+    q_limit_pep = int(q_limit_pep)
 
     protein_peptide_graph = Graph()
 
-    initialize(protein_peptide_graph, con, q_limit)
+    initialize(protein_peptide_graph, con, q_limit_pep, context, run_id)
 
     collapse(protein_peptide_graph)
 
     # visualize(protein_peptide_graph)
 
     component_list = separate(protein_peptide_graph)
-
-    # for component in component_list:
-    #     visualize_component(component)
 
     reduce(component_list, con)
 
@@ -39,92 +38,114 @@ def main(input_file: str, q_limit_pep: str) -> None:
 
 
 def initialize(protein_peptide_graph: Graph, con,
-               q_limit: int) -> None:
-    peptide_id_list = get_all_peptide(con, q_limit)
+               q_limit: int, context: str, run_id: int) -> None:
+    peptide_id_list = get_all_peptide(con, q_limit, context, run_id)
     print("got all peptide")
 
-    protein_id_list = get_all_protein_id(con)
+    protein_id_list = get_all_protein_id(con, context, run_id)
     print("got all protein")
+
+    linked_peptide_dict = get_all_link_for_protein(con)
+    print("got all link from protein to peptide")
+
+    protein_accession_dict = get_all_protein_accession(con)
+    print("got all accession per protein sqlite id")
+
+    linked_protein_dict = get_all_link_for_peptide(con)
+    print("got all link from peptide to protein")
 
     protein_peptide_graph.add_peptide(peptide_id_list)
     print("added all peptide")
 
-    protein_peptide_graph.add_protein(con, protein_id_list)
+    protein_peptide_graph.add_protein(protein_id_list, linked_peptide_dict,
+                                      protein_accession_dict)
     print("added all protein with edges")
 
-    protein_peptide_graph.make_edges_from_peptide(con)
+    protein_peptide_graph.make_edges_from_peptide(linked_protein_dict,
+                                                  protein_accession_dict)
     print("added edges from peptide")
+
+    protein_peptide_graph.get_sort_keys()
+    print("keys sorted by their id")
 
     print("initialized")
 
-    protein_num = 0
-    peptide_num = 0
-    for node in protein_peptide_graph.node_dict:
-        if isinstance(node, Protein):
-            protein_num += 1
-        elif isinstance(node, Peptide):
-            peptide_num += 1
-        else:
-            print("what")
+    num_t_protein = 0
+    num_d_peptide = 0
+    num_d_protein = 0
+    num_t_peptide = 0
+    for node in protein_peptide_graph.get_node_dict():
+        if isinstance(node, Protein) and node.get_target_decoy() == '0':
+            num_t_protein += 1
+        elif isinstance(node, Peptide) and node.get_target_decoy() == '0':
+            num_t_peptide += 1
+        elif isinstance(node, Peptide) and node.get_target_decoy() == '1':
+            num_d_peptide += 1
+        elif isinstance(node, Protein) and node.get_target_decoy() == '1':
+            num_d_protein += 1
+    print("total nodes", len(protein_peptide_graph.get_node_dict()))
 
-    print(protein_num)
-    print(peptide_num)
+    print("target protein", num_t_protein)
+    print("target peptide", num_t_peptide)
+    print("decoy protein", num_d_protein)
+    print("decoy peptide", num_d_peptide)
 
 
 def collapse(protein_peptide_graph: Graph) -> None:
     protein_peptide_graph.collapse_graph()
 
 
-def visualize(protein_peptide_graph):
-    my_graph = protein_peptide_graph
-
-    their_graph = igraph.Graph()
-
-    # my_graph is a object with 1 dict
-    # one for protein, one for peptide
-    # the protein dict has protein as key
-    # and peptide as values
-
-    my_node_dict = my_graph.get_node_dict()
-
-    for vertex in my_node_dict:
-        if vertex.get_first_id() not in my_graph.node_to_delete:
-            my_string = ', '.join(map(str, vertex.get_id()))
-            their_graph.add_vertex(my_string)
-
-    print("vertex done")
-
-    protein_number = 1
-    peptide_number = 1
-    for key, value in my_node_dict.items():
-        if key.get_first_id() not in my_graph.node_to_delete and \
-                isinstance(key, Protein):
-            vertex_string_1 = ', '.join(map(str, key.get_id()))
-            print("protein number", protein_number, "got protein vertex")
-            for element in value:
-                vertex_string_2 = ', '.join(map(str, element.get_id()))
-                their_graph.add_edge(vertex_string_1, vertex_string_2)
-                peptide_number += 1
-            protein_number += 1
-
-    print("edges done")
-
-    layout = their_graph.layout_auto()
-    print("layout done")
-    plot = igraph.plot(their_graph, vertex_label=their_graph.vs["name"],
-                       layout=layout)
-    print("plot done")
-    plot.show()
+# def visualize(protein_peptide_graph):
+#     pass
+#     my_graph = protein_peptide_graph
+#
+#     their_graph = igraph.Graph()
+#
+#     # my_graph is a object with 1 dict
+#     # one for protein, one for peptide
+#     # the protein dict has protein as key
+#     # and peptide as values
+#
+#     my_node_dict = my_graph.get_node_dict()
+#
+#     for vertex in my_node_dict:
+#         if vertex.get_first_id() not in my_graph.node_to_delete:
+#             my_string = ', '.join(map(str, vertex.get_id()))
+#             their_graph.add_vertex(my_string)
+#
+#     print("vertex done")
+#
+#     protein_number = 1
+#     peptide_number = 1
+#     for key, value in my_node_dict.items():
+#         if (key.get_first_id() not in my_graph.node_to_delete) \
+#                 and isinstance(key, Protein):
+#             vertex_string_1 = ', '.join(map(str, key.get_id()))
+#             print("protein number", protein_number, "got protein vertex")
+#             for element in value:
+#                 vertex_string_2 = ', '.join(map(str, element.get_id()))
+#                 their_graph.add_edge(vertex_string_1, vertex_string_2)
+#                 peptide_number += 1
+#             protein_number += 1
+#
+#     print("edges done")
+#
+#     layout = their_graph.layout_auto()
+#     print("layout done")
+#     plot = igraph.plot(their_graph, vertex_label=their_graph.vs["name"],
+#                        layout=layout)
+#     print("plot done")
+#     plot.show()
 
 
 def separate(protein_peptide_graph: Graph) -> List[Component]:
     # for all white peptide nodes, explore them
     component_list = []
-    component_counter = 0
 
     print(protein_peptide_graph.discovered_nodes)
 
     for node in protein_peptide_graph.node_dict.keys():
+
         # if it is white and not deleted)
         if protein_peptide_graph.is_white(node) and \
                 node.get_first_id() not in protein_peptide_graph.node_to_delete:
@@ -133,62 +154,57 @@ def separate(protein_peptide_graph: Graph) -> List[Component]:
             protein_peptide_graph.dfs(node, a_component)
             component_list.append(a_component)
 
-            print("component number", component_counter, "is seperated")
-            component_counter += 1
-
     print("separated")
     return component_list
 
 
-def visualize_component(component):
-    """
-    all nodes in a component are assumed to be not deleted
-    :param component:
-    :return:
-    """
-
-    their_graph = igraph.Graph()
-
-    # my_graph is a object with 1 dict
-    # one for protein, one for peptide
-    # the protein dict has protein as key
-    # and peptide as values
-
-    for vertex in component.protein_dict:
-        my_string = ', '.join(map(str, vertex.get_id()))
-        their_graph.add_vertex(my_string, type=False)
-    print("protein done")
-
-    for vertex in component.peptide_dict:
-        my_string = ', '.join(map(str, vertex.get_id()))
-        their_graph.add_vertex(my_string, type=True)
-    print("protein done")
-
-    protein_number = 1
-    peptide_number = 1
-    for key, value in component.protein_dict.items():
-        vertex_string_1 = ', '.join(map(str, key.get_id()))
-
-        for element in value:
-
-            vertex_string_2 = ', '.join(map(str, element.get_id()))
-            their_graph.add_edge(vertex_string_1, vertex_string_2)
-            peptide_number += 1
-        print("protein number", protein_number, "got all edges")
-        protein_number += 1
-
-    print("edges done")
-
-    layout = their_graph.layout_bipartite()
-    print("layout done")
-    igraph.plot(their_graph, vertex_label=their_graph.vs["name"],
-                layout=layout)
-    print("plot done")
+# def visualize_component(component):
+#     """
+#     all nodes in a component are assumed to be not deleted
+#     """
+#     pass
+#
+#     their_graph = igraph.Graph()
+#
+#     # my_graph is a object with 1 dict
+#     # one for protein, one for peptide
+#     # the protein dict has protein as key
+#     # and peptide as values
+#
+#     for vertex in component._protein_dict:
+#         my_string = ', '.join(map(str, vertex.get_id()))
+#         their_graph.add_vertex(my_string, type=False)
+#     print("protein done")
+#
+#     for vertex in component._peptide_dict:
+#         my_string = ', '.join(map(str, vertex.get_id()))
+#         their_graph.add_vertex(my_string, type=True)
+#     print("protein done")
+#
+#     protein_number = 1
+#     peptide_number = 1
+#     for key, value in component._protein_dict.items():
+#         vertex_string_1 = ', '.join(map(str, key.get_id()))
+#
+#         for element in value:
+#
+#             vertex_string_2 = ', '.join(map(str, element.get_id()))
+#             their_graph.add_edge(vertex_string_1, vertex_string_2)
+#             peptide_number += 1
+#         print("protein number", protein_number, "got all edges")
+#         protein_number += 1
+#
+#     print("edges done")
+#
+#     layout = their_graph.layout_bipartite()
+#     print("layout done")
+#     plot = igraph.plot(their_graph, vertex_label=their_graph.vs["name"],
+#                        layout=layout)
+#     print("plot done")
 
 
 def reduce(component_list: List[Component], con) -> None:
     min_pro_list = []
-    component_accession_list_counter = 0
     for component in component_list:
 
         # this is a list of list of protein accession
@@ -200,12 +216,9 @@ def reduce(component_list: List[Component], con) -> None:
         # sublist of the sublist belong to the same meta-protein vertex
         min_pro_list.append(component_accession_list)
 
-        print("component number", component_accession_list_counter,
-              "is reduced")
-        component_accession_list_counter += 1
-
     create_table_protein_group(con)
-    protein_data_entry(con, min_pro_list)
+    create_table_protein_group_peptide_mapping(con)
+    protein_group_data_entry(con, min_pro_list)
 
     print("reduced")
 
@@ -218,740 +231,207 @@ def begin_connection(db_name: str):
     return con
 
 
-def get_all_protein_id(con) -> List[int]:
+def get_all_protein_id(con, context: str, run_id: int) -> List[Tuple[str, int]]:
     """
-    choose all peptide from the global context
+    choose all protein from the a context
+    :param run_id: the run id if the context is 'run-specific'
+    :param context: the context, either global or 'run-specific'
     :param con: the connection to the sqlite database
     :return: a list of all proteins
     """
     c = con.cursor()
-    c.execute(
-        """SELECT PROTEIN_ID 
-        FROM SCORE_PROTEIN 
-        WHERE CONTEXT='global'""")
+    # TODO: there must be a better solution
+    if context == 'global':
+        c.execute(
+            """SELECT PROTEIN_ID, DECOY
+            FROM SCORE_PROTEIN 
+            INNER JOIN PROTEIN ON SCORE_PROTEIN.PROTEIN_ID = PROTEIN.ID
+            WHERE CONTEXT='global'""")
+    elif context == 'run-specific':
+        c.execute(
+            """SELECT PROTEIN_ID, DECOY
+            FROM SCORE_PROTEIN 
+            INNER JOIN PROTEIN ON SCORE_PROTEIN.PROTEIN_ID = PROTEIN.ID
+            WHERE CONTEXT='run-specific' AND RUN_ID=:run_id""", {'run_id', run_id})
     all_protein_id_list = []
     for row in c.fetchall():
-        all_protein_id_list.append(row[0])
+        all_protein_id_list.append((str(row[0]), row[1]))
     c.close()
     return all_protein_id_list
 
 
-def get_protein_accession(con, protein_id: int) -> List[str]:
-    """
-    returns the protein accession that has this id, as a list
-    :param con:
-    :param protein_id:
-    :return:
-    """
-    c = con.cursor()
-    protein_accession_list = []
-    c.execute(
-        """SELECT PROTEIN_ACCESSION 
-            FROM PROTEIN 
-            WHERE ID=:protein_sqlite_id AND DECOY=0""",
-        {"protein_sqlite_id": protein_id}
-    )
-    # if there are any row, split the row (which are text) into List[str]
-    for row in c.fetchall():
-        accession_sublist = row[0].split(";")
-        protein_accession_list.extend(accession_sublist)
-
-    c.close()
-    return protein_accession_list
-
-
-def get_all_peptide(con, q_limit: int) -> List[int]:
+def get_all_peptide(con, q_limit: int, context: str, run_id: int) \
+        -> List[Tuple[str, float, int]]:
     c = con.cursor()
     # choose all peptide from the global context and less than the threshold
-    c.execute(
-        """SELECT PEPTIDE_ID FROM SCORE_PEPTIDE
-        INNER JOIN PEPTIDE ON PEPTIDE.ID = SCORE_PEPTIDE.PEPTIDE_ID
-        WHERE QVALUE<:q_limit AND DECOY=0""",
-        {'q_limit': q_limit}
-    )
+    # TODO: there should be a more clever solution
+    if context == 'global':
+        c.execute(
+            """SELECT PEPTIDE_ID, SCORE, DECOY
+            FROM SCORE_PEPTIDE
+            INNER JOIN PEPTIDE ON PEPTIDE.ID = SCORE_PEPTIDE.PEPTIDE_ID
+            WHERE QVALUE<:q_limit AND SCORE_PEPTIDE.CONTEXT = 'global'""",
+            {'q_limit': q_limit}
+        )
+    elif context == 'run-specific':
+        c.execute(
+            """SELECT PEPTIDE_ID, SCORE, DECOY
+            FROM SCORE_PEPTIDE
+            INNER JOIN PEPTIDE ON PEPTIDE.ID = SCORE_PEPTIDE.PEPTIDE_ID
+            WHERE QVALUE<:q_limit AND SCORE_PEPTIDE.CONTEXT = 'run-specific' 
+            AND RUN_ID=:run_id""",
+            {'q_limit': q_limit, 'run_id': run_id}
+        )
     all_peptide_id_list = []
-
     for row in c.fetchall():
         # each row is a tuple, since c.fetchall() returns a list of tuples
-        all_peptide_id_list.append(row[0])
+        all_peptide_id_list.append((str(row[0]), row[1], row[2]))
 
     c.close()
     return all_peptide_id_list
 
-    # TODO if i ever want to select only peptide or protein that fit a certain
+    # if i ever want to select only peptide or protein that fit a certain
     #  properties, use c.execute("SELECT * WHERE value=3 AND keyword=1")
-    #  like that, note this data and result is in SCORE_PROTEIN or SCORE_PEPTIDE
+    #  something like that, note this data is in SCORE_PROTEIN or SCORE_PEPTIDE
 
 
-def get_link_for_protein(con, protein_sqlite_id: int) -> List[int]:
+def get_all_link_for_protein(con) -> Dict[str, List[Tuple[str, float, int]]]:
     c = con.cursor()
     c.execute(
-        """SELECT PEPTIDE_ID 
-        FROM PEPTIDE_PROTEIN_MAPPING 
-        WHERE PROTEIN_ID=:protein_sqlite_id""",
-        {'protein_sqlite_id': protein_sqlite_id})
-    peptide_id_list = []
+        """SELECT PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID,
+        PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID, SCORE_PEPTIDE.SCORE, 
+        PEPTIDE.DECOY
+        FROM PEPTIDE_PROTEIN_MAPPING
+        INNER JOIN SCORE_PEPTIDE 
+        ON SCORE_PEPTIDE.PEPTIDE_ID = PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID
+        INNER JOIN PEPTIDE ON PEPTIDE.ID = SCORE_PEPTIDE.PEPTIDE_ID""")
+    linked_peptide_dict = {}
     for row in c.fetchall():
-        peptide_id_list.append(row[0])
+        protein_id = str(row[0])
+        peptide_id = str(row[1])
+        peptide_score = row[2]
+        peptide_decoy = row[3]
+        peptide_info = (peptide_id, peptide_score, peptide_decoy)
+        # if key was not in the dict, setdefault return the default value,
+        # empty list here. if it was then it returns the value
+        linked_peptide_dict.setdefault(protein_id, []).append(peptide_info)
     c.close()
-    return peptide_id_list
+    return linked_peptide_dict
 
 
-def get_link_for_peptide(con, peptide_id: int) -> List[int]:
+def get_all_protein_accession(con) -> Dict[str, List[str]]:
+    """
+    returns a dictionary that pairs id with protein accession (as a list)
+    """
+    c = con.cursor()
+    protein_accession_dict = {}
+    c.execute(
+        """SELECT ID, PROTEIN_ACCESSION 
+            FROM PROTEIN"""
+    )
+    # if there are any row, split the row (which are text) into List[str]
+    for row in c.fetchall():
+        protein_sqlite_id = str(row[0])
+        accession_sublist = row[1].split(";")
+        # if key was not in the dict, setdefault return the default value,
+        # empty list here. if it was then it returns the value
+        protein_accession_dict.\
+            setdefault(protein_sqlite_id, []).extend(accession_sublist)
+    c.close()
+
+    for accession_list in protein_accession_dict.keys():
+        protein_accession_dict[accession_list] \
+            = list(set(protein_accession_dict[accession_list]))
+    return protein_accession_dict
+
+
+def get_all_link_for_peptide(con) -> Dict[str, List[Tuple[str, int]]]:
+    """
+    return a dict that serves as a mapping from peptide to protein
+    """
     c = con.cursor()
     c.execute(
-        """SELECT PROTEIN_ID 
-        FROM PEPTIDE_PROTEIN_MAPPING 
-        where PEPTIDE_ID=:peptide_id""",
-        {"peptide_id": peptide_id})
-    protein_id_list = []
+        """SELECT PEPTIDE_ID, PROTEIN_ID, PROTEIN.DECOY
+        FROM PEPTIDE_PROTEIN_MAPPING
+        INNER JOIN PROTEIN ON PROTEIN.ID = PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID"""
+    )
+    linked_protein_dict = {}
     for row in c.fetchall():
-        protein_id_list.append(row[0])
+        peptide_id = str(row[0])
+        protein_id = str(row[1])
+        protein_decoy = row[2]
+        protein_info = (protein_id, protein_decoy)
+        # if key was not in the dict, setdefault return the default value,
+        # empty list here. if it was then it returns the value
+        linked_protein_dict.setdefault(peptide_id, []).append(protein_info)
     c.close()
-    return protein_id_list
+    return linked_protein_dict
 
 
 def create_table_protein_group(con) -> None:
     """mpl = minimal protein list"""
     c = con.cursor()
-    c.execute("""DROP TABLE IF EXISTS PROTEIN_GROUPS""")
-    c.execute("""CREATE TABLE PROTEIN_GROUPS(
+    c.execute("""DROP TABLE IF EXISTS PROTEIN_GROUP""")
+    c.execute("""CREATE TABLE PROTEIN_GROUP(
               COMPONENT_ID INTEGER,
               PROTEIN_GROUP_ID INTEGER, 
-              PROTEIN_ID INTEGER);""")
+              PROTEIN_ID INTEGER,
+              SCORE REAL,
+              DECOY INT);""")
     c.close()
 
 
-def protein_data_entry(con, min_pro_list: List[List[List[str]]]) -> None:
+def create_table_protein_group_peptide_mapping(con) -> None:
+    c = con.cursor()
+    c.execute("""DROP TABLE IF EXISTS PROTEIN_GROUP_PEPTIDE_MAPPING""")
+    c.execute("""CREATE TABLE PROTEIN_GROUP_PEPTIDE_MAPPING(
+              PROTEIN_GROUP_ID INTEGER, 
+              PEPTIDE_ID INTEGER
+              );""")
+    c.close()
+
+
+def protein_group_data_entry(con, min_pro_list: List[List[Tuple[
+        List[str], float, int, List[str]]]]) -> None:
     c = con.cursor()
     component_id = 0
     protein_group_id = 0
     for component in min_pro_list:
         for protein_group in component:
-            for protein_accession in protein_group:
-                c.execute("""INSERT INTO PROTEIN_GROUPS(COMPONENT_ID, 
-                PROTEIN_GROUP_ID, PROTEIN_ID) VALUES(:component_id, 
-                :protein_group_id, :protein_accession)""",
+            protein_accession_list = protein_group[0]
+            score = protein_group[1]
+            decoy = protein_group[2]
+            peptide_id_list = protein_group[3]
+            for protein_accession in protein_accession_list:
+                c.execute("""INSERT INTO PROTEIN_GROUP(COMPONENT_ID, 
+                PROTEIN_GROUP_ID, PROTEIN_ID, SCORE, DECOY) VALUES(:component_id
+                , :protein_group_id, :protein_accession, :score, :decoy)""",
                           {'component_id': component_id,
                            'protein_group_id': protein_group_id,
-                           'protein_accession': protein_accession}
+                           'protein_accession': protein_accession,
+                           'score': score,
+                           'decoy': decoy}
                           )
                 con.commit()
-            print("protein_group", protein_group_id, "is entered")
+            unique_peptide_id_list = list(set(peptide_id_list))
+            for peptide_id in unique_peptide_id_list:
+                c.execute("""INSERT INTO PROTEIN_GROUP_PEPTIDE_MAPPING(
+                PROTEIN_GROUP_ID, PEPTIDE_ID) VALUES(:protein_group_id, :peptide_id)
+                """, {'protein_group_id': protein_group_id,
+                      'peptide_id': peptide_id})
+                con.commit()
             protein_group_id += 1
-        print("component", component_id, "is entered")
         component_id += 1
     c.close()
 
-
 def end_connection(con) -> None:
     con.close()
-
-
-class Node:
-    """=== Private Attributes ===
-
-    _merge_number: same number means that these nodes are to be merged into
-    a meta node, initially set as 0
-    """
-
-    def __init__(self) -> None:
-        pass
-
-    @abstractmethod
-    def get_id(self):
-        pass
-
-    @abstractmethod
-    def add_id(self, accession_list):
-        pass
-
-    @abstractmethod
-    def get_first_id(self):
-        pass
-
-
-class Protein(Node):
-    _selected: bool
-    _id_list: List[str]
-    _first_id: str
-    _sqlite_ids: List[int]
-    _first_sqlite_id: int
-
-    """initially, the protein group only has 1 accession number in it
-    first accession serves as the immutable hash value for the dict key
-    the protein_ids is just for making edges"""
-
-    def __init_subclass__(cls, **kwargs) -> None:
-        pass
-
-    def __init__(self, id_list: List[str], protein_sqlite_id: int) -> None:
-        super().__init__()
-        self._selected = False
-        self._id_list = id_list
-        self._first_id = id_list[0]
-        self._first_sqlite_id = protein_sqlite_id
-        self._sqlite_ids = [protein_sqlite_id]
-
-    def __hash__(self) -> int:
-        return hash(self.get_first_id())
-
-    def get_both_first_accession(self, other: Protein) -> Tuple[str, str]:
-        this_acc = self.get_first_id()
-
-        that_acc = other.get_first_id()
-
-        return this_acc, that_acc
-
-    def __eq__(self, other: Protein) -> bool:
-        this_acc, that_acc = self.get_both_first_accession(other)
-        return this_acc == that_acc
-
-    def __ne__(self, other: Protein) -> bool:
-        this_acc, that_acc = self.get_both_first_accession(other)
-        return this_acc != that_acc
-
-    def __lt__(self, other: Protein) -> bool:
-        this_acc, that_acc = self.get_both_first_accession(other)
-        return this_acc < that_acc
-
-    def __le__(self, other: Protein) -> bool:
-        this_acc, that_acc = self.get_both_first_accession(other)
-        return this_acc <= that_acc
-
-    def __gt__(self, other: Protein) -> bool:
-        this_acc, that_acc = self.get_both_first_accession(other)
-        return this_acc > that_acc
-
-    def __ge__(self, other: Protein) -> bool:
-        this_acc, that_acc = self.get_both_first_accession(other)
-        return this_acc >= that_acc
-
-    def is_selected(self) -> bool:
-        return self._selected
-
-    def set_selected(self) -> None:
-        self._selected = True
-
-    def get_first_id(self) -> str:
-        """
-        this is for building the graph, because initially, there is only one id
-        :return:
-        """
-        return self._first_id
-
-    def add_id(self, accession_list: List[str]):
-        self._id_list.extend(accession_list)
-
-    def get_id(self) -> List[str]:
-        return self._id_list
-
-    def get_sqlite_id(self):
-        return self._sqlite_ids
-
-    def add_sqlite_id(self, protein_sqlite_id: int) -> None:
-        self._sqlite_ids.append(protein_sqlite_id)
-
-    def get_first_sqlite_id(self) -> int:
-        return self._first_sqlite_id
-
-
-class Peptide(Node):
-    _covered: bool
-    _first_id: int
-    _ids: List[int]
-
-    """initially, the protein group only has 1 id in it"""
-
-    def __init__(self, peptide_id_list: List[int]) -> None:
-        super().__init__()
-        self._covered = False
-        self._ids = peptide_id_list
-        self._first_id = peptide_id_list[0]
-
-    def __hash__(self) -> int:
-        return hash(self.get_first_id())
-
-    def get_both_ids(self, other: Peptide) -> Tuple[int, int]:
-        this_id = self.get_first_id()
-
-        that_id = other.get_first_id()
-
-        return this_id, that_id
-
-    def __eq__(self, other: Peptide) -> bool:
-        this_id, that_id = self.get_both_ids(other)
-        return this_id == that_id
-
-    def __ne__(self, other) -> bool:
-        this_id, that_id = self.get_both_ids(other)
-        return this_id != that_id
-
-    def __lt__(self, other) -> bool:
-        this_id, that_id = self.get_both_ids(other)
-        return this_id < that_id
-
-    def __le__(self, other) -> bool:
-        this_id, that_id = self.get_both_ids(other)
-        return this_id <= that_id
-
-    def __gt__(self, other) -> bool:
-        this_id, that_id = self.get_both_ids(other)
-        return this_id > that_id
-
-    def __ge__(self, other) -> bool:
-        this_id, that_id = self.get_both_ids(other)
-        return this_id >= that_id
-
-    def is_covered(self) -> bool:
-        return self._covered
-
-    def set_covered(self) -> None:
-        self._covered = True
-
-    def get_first_id(self) -> int:
-        return self._first_id
-
-    def get_id(self) -> List[int]:
-        return self._ids
-
-    def add_id(self, id_list: List[int]):
-        self._ids.extend(id_list)
-
-
-class Component:
-    """
-    this is a representation of the connected component of graph theory
-    """
-    protein_dict: Dict[Protein, List[Peptide]]
-    peptide_dict: Dict[Peptide, List[Protein]]
-    _covered_peptide: dict
-
-    def __init__(self):
-        self.protein_dict = {}
-        self.peptide_dict = {}
-        self._covered_peptide = {}
-
-    def add_peptide(self, current_peptide: Peptide,
-                    neighbours) -> None:
-        """
-        add current_peptide to this component
-        """
-
-        self.peptide_dict[current_peptide] = neighbours
-
-    def add_protein(self, current_protein: Protein,
-                    neighbours) -> None:
-        """
-        add current_protein to this component
-        """
-
-        self.protein_dict[current_protein] = neighbours
-
-    def make_protein_list(self) -> List[List[str]]:
-        """
-        find the minimal protein list of this component
-        :return:
-        """
-
-        component_min_pro_list = []
-
-        while not self.all_component_peptides_covered():
-            # select the protein with the most edges to uncovered peptide
-            currently_selected_protein = self._find_most_uncovered_protein()
-            component_min_pro_list.append(currently_selected_protein)
-            currently_selected_protein.set_selected()
-
-            # set the peptide that has edges to this selected protein as covered
-            # that is add it to the covered peptide dict
-            will_cover_peptide = self.protein_dict[currently_selected_protein]
-            for current_peptide in will_cover_peptide:
-                self._covered_peptide[current_peptide.get_first_id()] = ''
-
-        component_accession_list = []
-        # component_min_pro_list is a list of protein that are selected
-        # each protein contain their own accession list (list of str)
-        # collecting them into the component_accession_list
-        # would a list of list of str
-        # where each sublist is the belong to the same protein object
-        for current_protein in component_min_pro_list:
-            component_accession_list.append(current_protein.get_id())
-
-        return component_accession_list
-
-    def _find_most_uncovered_protein(self) -> Protein:
-        """
-        find the protein that could cover the greatest number of uncovered
-        peptides using find_num_uncovered_peptides excluding the protein that
-        are already selected
-        :return:
-        """
-
-        # pick any protein from the a_component
-        most_edges_protein = random.choice(list(self.protein_dict.keys()))
-
-        # record its number of edges
-        most_uncovered = self.find_num_uncovered_peptides(most_edges_protein)
-
-        # loop over the proteins of the component
-        for current_protein in self.protein_dict.keys():
-
-            # of all the protein that are not selected, find the one with
-            # the most edges (to peptides)
-            if current_protein.is_selected():
-                continue
-            else:
-                current_protein_num_uncovered = \
-                    self.find_num_uncovered_peptides(current_protein)
-                if current_protein_num_uncovered > most_uncovered:
-                    most_uncovered = current_protein_num_uncovered
-                    most_edges_protein = current_protein
-
-        most_edges_protein.set_selected()
-        return most_edges_protein
-
-    def find_num_uncovered_peptides(self, current_protein: Protein) -> int:
-        """:param
-        find the number of peptides that are uncovered for current_protein
-        after excluding peptides that are covered by other selected proteins
-        """
-        num_uncovered_peptides = 0
-        peptide_neighbours = self.protein_dict[current_protein]
-        for current_peptide in peptide_neighbours:
-            if current_peptide.get_first_id() in self._covered_peptide:
-                continue
-            else:
-                num_uncovered_peptides += 1
-        return num_uncovered_peptides
-
-    def all_component_peptides_covered(self) -> bool:
-        """:param
-        check if all the peptides in this component is covered by protein
-        that are selected
-        """
-
-        all_covered = True
-
-        # find if any peptide is not yet covered
-        for peptide in self.peptide_dict:
-            if peptide.get_first_id() not in self._covered_peptide:
-                all_covered = False
-
-        return all_covered
-
-
-class Graph:
-    """
-    The node_to_delete, discovered_nodes, explored_nodes with key as the first
-    id of the node, and an empty string as value
-    """
-    node_dict: Dict[Node, List[Node]]
-    node_to_delete: Dict[int, str]
-    # node_to_add_id: dict
-    discovered_nodes: Dict[int, str]
-    explored_nodes: Dict[int, str]
-
-    def __init__(self):
-        self.node_dict = {}
-        self.node_to_delete = {}
-        # self.node_to_add_id = {}
-        self.discovered_nodes = {}
-        self.explored_nodes = {}
-
-    def get_node_dict_keys(self):
-        return self.node_dict.keys()
-
-    def get_node_dict(self):
-        return self.node_dict
-
-    """methods for step 1: initialize"""
-
-    def add_peptide(self, peptide_id_list: List[int]) -> None:
-        """
-        add the peptide from the peptide_id_list into the graph
-        """
-
-        # for every peptide that is a hit
-        for peptide_id in peptide_id_list:
-            # make a Peptide node
-            current_peptide = Peptide([peptide_id])
-            # store that peptide into the graph
-            self.node_dict[current_peptide] = []
-
-    def add_protein(self, con, protein_id_list: List[int]) -> None:
-        """
-        the protein with this accession may already be in the graph
-        because in the sqlite database, 1 protein sqlite id correspond to
-        multiple protein accessions, and they may overlap (a protein accession
-        can exist in multiple protein sqlite ids)
-        """
-        for protein_id in protein_id_list:
-            protein_accession_list = get_protein_accession(con, protein_id)
-            for protein_accession in protein_accession_list:
-                current_protein = Protein([protein_accession], protein_id)
-                if self.node_in_graph(current_protein):
-                    self.make_edge_from_protein_id(con, current_protein)
-                else:
-                    self.node_dict[current_protein] = []
-                    self.make_edge_from_protein_id(con, current_protein)
-
-    def make_edge_from_protein_id(self, con, the_protein: Protein) -> None:
-        """
-        use the protein id given, add peptides as edges to the current protein
-        """
-
-        protein_id = the_protein.get_first_sqlite_id()
-        neighbour_list_pep = get_link_for_protein(con, protein_id)
-        # neighbour list is just a list of peptide ids
-        for neighbour_id in neighbour_list_pep:
-            a_peptide = Peptide([neighbour_id])
-            if self.node_in_graph(a_peptide):
-                self.node_dict[the_protein].append(a_peptide)
-
-    def make_edges_from_peptide(self, con) -> None:
-        """
-        iterate through the peptide keys, and for each, get their link (most
-        times there is only one link), for each link, get all the accessions.
-        for each accession, make a protein object, check if is a protein key,
-        then add it to this peptide keys's value
-        """
-        for node in self.node_dict:
-            if isinstance(node, Peptide):
-                neighbour_list_pro = get_link_for_peptide(con,
-                                                          node.get_first_id())
-                for neighbour_id in neighbour_list_pro:
-                    accession_list = get_protein_accession(con, neighbour_id)
-                    for accession in accession_list:
-                        a_protein = Protein([accession], neighbour_id)
-                        self.node_dict[node].append(a_protein)
-
-    def node_in_graph(self, a_node: Node):
-        """
-        check if this node is in the graph
-        """
-        if self.get_node_dict().get(a_node) is None:
-            in_graph = False
-        else:
-            in_graph = True
-
-        return in_graph
-
-    """methods for step 2: collapse"""
-
-    def collapse_graph(self) -> None:
-        """
-        take neighbours of each node and call reorder_neighbours on it
-        if necessary
-        """
-
-        # for each node
-        progress_count = 1
-        for key, value in self.node_dict.items():
-
-            # if the node has been delete, skip
-            if key.get_first_id() in self.node_to_delete:
-                progress_count += 1
-                continue
-
-            # current neighbours: neighbours of the current node
-            current_neighbours = value
-
-            # TODO: so uh, actually some nodes are deleted right
-            # I could just skip checking its neighbour?
-
-            # if there are more than 2 neighbours
-            if len(current_neighbours) >= 2:
-
-                # actually reorganize the neighbours
-                neighbours_reorganized = self.reorder_neighbours(
-                    current_neighbours)
-
-                # then use that to check mergeability
-                self.check_for_merging(neighbours_reorganized)
-
-            progress_count += 1
-
-            print(progress_count, len(self.node_dict))
-
-    """methods for step 2a: reordering"""
-
-    def find_num_max_edges(self, node_list: List[Node]) -> int:
-        """
-        find the number of neighbours for the node with the most neighbours
-        """
-
-        max_edges = 0
-
-        for current_node in node_list:
-            neighbour_list = self.node_dict[current_node]
-            if len(neighbour_list) > max_edges:
-                max_edges = len(neighbour_list)
-
-        return max_edges
-
-    def reorder_neighbours(self, current_neighbours: List[Node]) \
-            -> List[List[Node]]:
-        """
-        take the list of node, current_neighbours and reformat it into a
-        list of list of node where every protein in each sublist has the same
-        number of neighbours
-        """
-
-        neighbours_reorganized = []
-
-        num_most_edges = self.find_num_max_edges(current_neighbours)
-
-        # append as many list as num_most_edges
-        # where num_most_edges is the greatest number of
-        # neighbours a protein has
-        for i in range(0, num_most_edges + 1):
-            neighbours_reorganized.append([])
-
-        # for all neighbour
-        for current_node in current_neighbours:
-            # find num of neighbours for current node
-            num_neighbours = len(self.node_dict[current_node])
-            # append them to the list of list appropriately
-            neighbours_reorganized[
-                num_neighbours].append(current_node)
-
-        return neighbours_reorganized
-
-    """methods for step 2b: merging"""
-
-    def check_for_merging(self, neighbours_reorganized: List[List[Node]]) \
-            -> None:
-        """
-        check neighbours_reorganized for nodes that are possible to merge
-        """
-
-        # all the protein neighbours in the same protein_neighbour_list
-        # should have the same length
-        for neighbour_list in neighbours_reorganized:
-            for neighbour_pair in itertools.combinations(neighbour_list, 2):
-                # if both nodes are not deleted, then compare them.
-                # and if they have the same neighbours then execute the case
-                if (
-                        neighbour_pair[
-                            0].get_first_id() not in self.node_to_delete
-                        and
-                        neighbour_pair[
-                            1].get_first_id() not in self.node_to_delete
-                ) and self.compare_neighbours(neighbour_pair):
-
-                    self.delete_node(neighbour_pair[1])
-
-                    id_list = neighbour_pair[1].get_id()
-
-                    neighbour_pair[0].add_id(id_list)
-
-                    self.key_add_id(neighbour_pair[0], id_list)
-
-    def compare_neighbours(self, node_pair: Tuple[Node, ...]) \
-            -> bool:
-        """
-        compare the neighbours of the nodes in the pair
-        if either node is None, return false
-        """
-        this_node = node_pair[0]
-        that_node = node_pair[1]
-        these_neighbours = self.node_dict.get(this_node)
-        those_neighbours = self.node_dict.get(that_node)
-        if these_neighbours is None or those_neighbours is None:
-            return False
-        else:
-            these_neighbours.sort()
-            those_neighbours.sort()
-
-            return these_neighbours == those_neighbours
-
-    def delete_node(self, current_node: Node) -> None:
-        """
-        delete current node from the graph
-        """
-
-        # store the id of the node into the "node_to_delete" dict
-        # with an empty string
-        self.node_to_delete[current_node.get_first_id()] = ''
-
-    # TODO: find a way to not have to use this method
-
-    def key_add_id(self, same_protein: Node, id_list):
-        """
-        add protein accession(s) or peptide id(s) from the deleted protein or
-        peptide to the other indistinguishable protein or peptide
-        there is another one because the neighbour pair exist as values
-        in the node dict not keys
-        """
-        for key in self.node_dict.keys():
-            if key == same_protein:
-                key.add_id(id_list)
-
-    """methods for step 3: separate"""
-
-    def set_discovered(self, start_node: Node) -> None:
-        """
-        set this node as discovered
-        """
-        self.discovered_nodes[start_node.get_first_id()] = ''
-
-    def set_explored(self, start_node: Node) -> None:
-        """
-        set this node as explored
-        """
-        self.explored_nodes[start_node.get_first_id()] = ''
-
-    def is_white(self, node: Node) -> bool:
-        """
-        check if this node is undiscovered and unexplored
-        """
-
-        return (node.get_first_id() not in self.discovered_nodes) \
-               and (node.get_first_id not in self.explored_nodes)
-
-    def is_discovered(self, node) -> bool:
-        """
-        check if this node is discovered
-        """
-        return node.get_first_id() in self.discovered_nodes
-
-    def is_explored(self, node) -> bool:
-        """
-        check if this node is explored
-        """
-        return node.get_first_id() in self.explored_nodes
-
-    def dfs(self, start_node: Node, a_component: Component) -> None:
-        """
-        Performs depth first search start with start_node, then added
-        the explored nodes to a_component
-        """
-
-        self.set_discovered(start_node)
-
-        # if protein, get a peptide list, if peptide get a protein list
-        neighbour_list = self.node_dict.get(start_node)
-
-        # for all neighbouring white node, explore them
-        for current_neighbour in neighbour_list:
-            if self.is_white(current_neighbour) \
-                    and current_neighbour.get_first_id() not in \
-                    self.node_to_delete:
-                self.dfs(current_neighbour, a_component)
-
-        self.set_explored(start_node)
-
-        # after the nodes are blacken,
-        # add the protein or peptide into the a_component
-        # with its neighbours
-        if isinstance(start_node, Protein):
-            a_component.add_protein(start_node, neighbour_list)
-        elif isinstance(start_node, Peptide):
-            a_component.add_peptide(start_node, neighbour_list)
 
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
         print("""usage: ParsimoniousProteinInferencer.py <sql file path>
               <q-value threshold for peptides>""")
-    main(sys.argv[1], sys.argv[2])
+    # input_file path, q_limit_pep, context, run_id
+    # if context is global, run_id can be anything
+    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
