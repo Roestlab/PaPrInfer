@@ -19,13 +19,12 @@ if __name__ == "__main__":
 
     score_type = "None"
 
-    protein_to_peptide = {}
+    protein_to_peptide_target = {}
+    protein_to_peptide_decoy = {}
 
     for peptide_id in pep_ids:
 
         for peptide_hit in peptide_id.getHits():
-
-
 
             peptide_evidence_vector = peptide_hit.getPeptideEvidences()
 
@@ -33,30 +32,30 @@ if __name__ == "__main__":
 
                 protein_accession = peptide_evidence.getProteinAccession()
 
-                # if key was not in the dict, setdefault return the default value,
-                # empty list here. if it was then it returns the value
-                protein_to_peptide.setdefault(protein_accession, []).append(peptide_hit.getSeq)
+                if peptide_hit.getMetaValue("target_decoy") == "target":
+                    # if key was not in the dict, setdefault return the default value,
+                    # which is an empty list in this case. if it was then it returns the value
+                    protein_to_peptide_target.setdefault(protein_accession, [])\
+                        .append(peptide_hit.getSequence())
+                elif peptide_hit.getMetaValue("target_decoy") == "decoy":
+                    # if key was not in the dict, setdefault return the default value,
+                    # which is an empty list in this case. if it was then it returns the value
+                    protein_to_peptide_decoy.setdefault(protein_accession, [])\
+                        .append(peptide_hit.getSequence())
+
+    target_ptp_distribution = []
+    decoy_ptp_distribution = []
+    for key, value in protein_to_peptide_target.items():
+        target_ptp_distribution.append(len(value))
+
+    for key, value in protein_to_peptide_decoy.items():
+        decoy_ptp_distribution.append(len(value))
 
 
-                #             if hit.getMetaValue("target_decoy") == "target":
-
-
-
-
-    # if score_type == "q-value":
-    #     _ = plt.hist(decoy_epifany_q_values, bins='auto', alpha=0.5, label="decoy")
-    #     _ = plt.hist(target_epifany_q_values, bins='auto', alpha=0.5, label="target")
-    #     plt.title("epifany qvalue")
-    #     plt.xlabel("Q value")
-    #     plt.ylabel("Number of proteins")
-    #     plt.legend()
-    #     plt.show()
-    # elif score_type == "Posterior Probability":
-    #     _ = plt.hist(target_epifany_pp_cleaned, bins=100, alpha=0.5, label="target")
-    #     _ = plt.hist(decoy_epifany_pp_cleaned, bins=100, alpha=0.5, label="decoy")
-    #     plt.title("proteininfernce Posterior Probability")
-    #     plt.xlabel("Posterior Probability")
-    #     plt.ylabel("Number of proteins")
-    #     plt.legend()
-    #     plt.show()
-
+    _ = plt.hist(target_ptp_distribution, bins=100, alpha=0.5, label="target")
+    _ = plt.hist(decoy_ptp_distribution, bins=100, alpha=0.5, label="decoy")
+    plt.title("epifany peptides per protein")
+    plt.xlabel("Number of peptide")
+    plt.ylabel("Number of proteins")
+    plt.legend()
+    plt.show()

@@ -386,7 +386,7 @@ def create_table_protein_group(con) -> None:
 
 def create_table_protein_group_peptide_mapping(con) -> None:
     c = con.cursor()
-    c.execute("""DROP TABLE IF EXISTS PROTEIN_GROUP_PEPTIDE_MAPPING""")
+    # c.execute("""DROP TABLE IF EXISTS PROTEIN_GROUP_PEPTIDE_MAPPING""")
     c.execute("""CREATE TABLE PROTEIN_GROUP_PEPTIDE_MAPPING(
               PROTEIN_GROUP_ID INTEGER, 
               PEPTIDE_ID INTEGER
@@ -417,12 +417,12 @@ def protein_group_data_entry(con, min_pro_list: List[List[Tuple[
                           )
                 con.commit()
             unique_peptide_id_list = list(set(peptide_id_list))
-            for peptide_id in unique_peptide_id_list:
-                c.execute("""INSERT INTO PROTEIN_GROUP_PEPTIDE_MAPPING(
-                PROTEIN_GROUP_ID, PEPTIDE_ID) VALUES(:protein_group_id, :peptide_id)
-                """, {'protein_group_id': protein_group_id,
-                      'peptide_id': peptide_id})
-                con.commit()
+            # for peptide_id in unique_peptide_id_list:
+            #     c.execute("""INSERT INTO PROTEIN_GROUP_PEPTIDE_MAPPING(
+            #     PROTEIN_GROUP_ID, PEPTIDE_ID) VALUES(:protein_group_id, :peptide_id)
+            #     """, {'protein_group_id': protein_group_id,
+            #           'peptide_id': peptide_id})
+            #     con.commit()
             protein_group_id += 1
         component_id += 1
     c.close()
