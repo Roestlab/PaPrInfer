@@ -1,7 +1,9 @@
-import idXML_reader
+import src.compare_idpicker_epifany
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
+
+from src import compare_idpicker_epifany
 
 
 def main(epifany_file: str, idpicker_file: str):
@@ -15,7 +17,7 @@ def main(epifany_file: str, idpicker_file: str):
         print("threshold", threshold)
 
         num_idpicker_protein, num_epifany_protein = \
-            idXML_reader.main(epifany_file, idpicker_file, str(threshold))
+            compare_idpicker_epifany.main(epifany_file, idpicker_file, str(threshold))
 
         threshold_list.append(threshold)
         num_idpicker_protein_list.append(num_idpicker_protein)
