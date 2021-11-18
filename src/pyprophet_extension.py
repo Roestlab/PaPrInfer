@@ -61,8 +61,8 @@ def infer_protein_groups(infile, outfile, context, parametric, pfdr, pi0_lambda,
     print(data[data.decoy == 0]['score'])
 
     # this is technically speaking, only has 1 run,
-    # so that run specific and global and experient wide is the same
-    # TODO: change this to be able to accommodate run specfic
+    # so that run specific and global and experiment wide is the same
+    # TODO: change this to be able to accommodate run specific
 
     data = statistics_report(data, outfile, context, "protein group", parametric,
                              pfdr, pi0_lambda, pi0_method, pi0_smooth_df,
