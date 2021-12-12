@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
 
-    decoy_pep_list = []
+    decoy_qvalue_list = []
 
     db_name = sys.argv[1]
 
@@ -18,12 +18,12 @@ if __name__ == "__main__":
         FROM SCORE_PROTEIN_GROUP""")
 
     for row in c.fetchall():
-        posterior_error_probability = row[0]
-        decoy_pep_list.append(posterior_error_probability)
+        qvalue = row[0]
+        decoy_qvalue_list.append(qvalue)
 
-    print(decoy_pep_list)
+    print(decoy_qvalue_list)
 
-    _ = plt.hist(decoy_pep_list, bins='auto', label="target")
+    _ = plt.hist(decoy_qvalue_list, bins=100, label="target")
     plt.title("AFTER idpicker qvalue distribution in histogram")
     plt.xlabel("qvalue")
     plt.ylabel("Number of Protein")

@@ -16,9 +16,9 @@ if __name__ == "__main__":
     # note that there is no global context in the 20180911 file
     c.execute(
         """SELECT Score_Peptide.PEP
-        FROM Peptide
-        INNER JOIN Score_Peptide ON Score_Peptide.peptide_id = Peptide.id
-        WHERE DECOY = 1
+        FROM PEPTIDE
+        INNER JOIN SCORE_PEPTIDE ON SCORE_PEPTIDE.peptide_id = PEPTIDE.id
+        WHERE PEPTIDE.DECOY = 1
         AND SCORE_PEPTIDE.CONTEXT = 'global'""")
 
     for row in c.fetchall():
@@ -36,8 +36,8 @@ if __name__ == "__main__":
         posterior_error_probability = row[0]
         target_pep_list.append(posterior_error_probability)
 
-    _ = plt.hist(decoy_pep_list, bins='auto', label="decoy", alpha=0.5)
-    _ = plt.hist(target_pep_list, bins='auto', label="target", alpha=0.5)
+    _ = plt.hist(decoy_pep_list, bins=100, label="decoy", alpha=0.5)
+    _ = plt.hist(target_pep_list, bins=100, label="target", alpha=0.5)
     plt.title("Before epifany PEP distribution in histogram")
     plt.xlabel("PEP")
     plt.ylabel("Number of Peptides")

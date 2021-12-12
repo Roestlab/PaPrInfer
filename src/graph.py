@@ -171,6 +171,8 @@ class Graph:
                 neighbours_reorganized = self.reorder_neighbours(
                     current_neighbours)
 
+                print(list(map(len, neighbours_reorganized)))
+
                 # then use that to check mergeability
                 self.check_for_merging(neighbours_reorganized)
 
@@ -233,7 +235,6 @@ class Graph:
         # should have the same length
         for neighbour_list in neighbours_reorganized:
             for neighbour_pair in itertools.combinations(neighbour_list, 2):
-                # only if both nodes are not deleted,
                 if (
                     neighbour_pair[0].get_first_id() not in self.node_to_delete
                     and
@@ -262,8 +263,7 @@ class Graph:
         :param node_pair: the pair of node to be compared
         :return: True if the neighbour of the node pair are the same
         """
-        # if their first id and target+decoy is the same, then it is the
-        # same
+        # if their first id and target+decoy is the same, then it is the same
         this_node = node_pair[0]
         that_node = node_pair[1]
         these_neighbours = self.node_dict.get(this_node)
@@ -274,7 +274,7 @@ class Graph:
             these_neighbours.sort()
             those_neighbours.sort()
 
-            return these_neighbours == those_neighbours
+        return these_neighbours == those_neighbours
 
     def delete_node(self, current_node: Node) -> None:
 

@@ -26,7 +26,7 @@ def main(input_file: str, q_limit_pep: str, context: str, run_id: str) -> None:
 
     initialize(protein_peptide_graph, con, q_limit_pep, context, run_id)
 
-    # collapse(protein_peptide_graph)
+    collapse(protein_peptide_graph)
 
     # visualize(protein_peptide_graph)
 
@@ -220,7 +220,8 @@ def reduce(component_list: List[Component], con) -> None:
         min_pro_list.append(component_accession_list)
 
     create_table_protein_group(con)
-    create_table_protein_group_peptide_mapping(con)
+    # TODO
+    # create_table_protein_group_peptide_mapping(con)
     protein_group_data_entry(con, min_pro_list)
 
     print("reduced")
@@ -386,7 +387,7 @@ def create_table_protein_group(con) -> None:
 
 def create_table_protein_group_peptide_mapping(con) -> None:
     c = con.cursor()
-    # c.execute("""DROP TABLE IF EXISTS PROTEIN_GROUP_PEPTIDE_MAPPING""")
+    c.execute("""DROP TABLE IF EXISTS PROTEIN_GROUP_PEPTIDE_MAPPING""")
     c.execute("""CREATE TABLE PROTEIN_GROUP_PEPTIDE_MAPPING(
               PROTEIN_GROUP_ID INTEGER, 
               PEPTIDE_ID INTEGER
@@ -438,4 +439,6 @@ if __name__ == "__main__":
               <q-value threshold for peptides> <context> <run id>""")
     # input_file path, q_limit_pep, context, run_id
     # if context is global, run_id can be anything
+    # dont run global on 20180911_TIMS2_12-2_AnBr_SA_diaPASEF_Test10_42eV_1_A1_01_2927_test_lib_overridegroupid.osw
+    # it does not have it
     main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])

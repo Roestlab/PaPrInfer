@@ -53,7 +53,7 @@ if __name__ == "__main__":
     # target_epifany_pp_cleaned = [1 if x == float('-inf') else x for x in target_epifany_pp]
     # decoy_epifany_pp_cleaned = [1 if x == float('-inf') else x for x in decoy_epifany_pp]
 
-    # remove -inf to
+    # remove -inf
     target_epifany_pp_cleaned = [i for i in target_epifany_pp if i != float('-inf')]
     decoy_epifany_pp_cleaned = [i for i in target_epifany_pp if i != float('-inf')]
 
@@ -61,8 +61,8 @@ if __name__ == "__main__":
     # thicker than the other one (i.e. the auto for target is not the same as
     # the auto for decoy)
     if score_type == "q-value":
-        _ = plt.hist(decoy_epifany_q_values, bins='auto', alpha=0.5, label="decoy")
-        _ = plt.hist(target_epifany_q_values, bins='auto', alpha=0.5, label="target")
+        _ = plt.hist(decoy_epifany_q_values, bins=100, alpha=0.5, label="decoy")
+        _ = plt.hist(target_epifany_q_values, bins=100, alpha=0.5, label="target")
         plt.title("epifany qvalue")
         plt.xlabel("Q value")
         plt.ylabel("Number of proteins")
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     elif score_type == "Posterior Probability":
         _ = plt.hist(target_epifany_pp_cleaned, bins=100, alpha=0.5, label="target")
         _ = plt.hist(decoy_epifany_pp_cleaned, bins=100, alpha=0.5, label="decoy")
-        plt.title("proteininfernce Posterior Probability")
+        plt.title("Epifany Posterior Probability")
         plt.xlabel("Posterior Probability")
         plt.ylabel("Number of proteins")
         plt.legend()
