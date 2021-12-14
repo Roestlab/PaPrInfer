@@ -48,7 +48,7 @@ def initialize(protein_peptide_graph: Graph, con,
     protein_id_list = get_all_protein_id(con, context, run_id)
     print("got all protein")
 
-    linked_peptide_dict = get_all_link_for_protein(con)
+    linked_peptide_dict = get_all_link_for_protein(con, context, q_limit, run_id)
     print("got all link from protein to peptide")
 
     protein_accession_dict = get_all_protein_accession(con)
@@ -77,10 +77,14 @@ def initialize(protein_peptide_graph: Graph, con,
     num_d_peptide = 0
     num_d_protein = 0
     num_t_peptide = 0
+    target_protein_list = []
+    target_peptide_list = []
     for node in protein_peptide_graph.get_node_dict():
         if isinstance(node, Protein) and node.get_target_decoy() == '0':
+            target_protein_list.append(node.get_first_id())
             num_t_protein += 1
         elif isinstance(node, Peptide) and node.get_target_decoy() == '0':
+            target_peptide_list.append(node.get_first_id())
             num_t_peptide += 1
         elif isinstance(node, Peptide) and node.get_target_decoy() == '1':
             num_d_peptide += 1
@@ -88,7 +92,9 @@ def initialize(protein_peptide_graph: Graph, con,
             num_d_protein += 1
     print("total nodes", len(protein_peptide_graph.get_node_dict()))
 
+    print("unique target protein", len(set(target_protein_list)))
     print("target protein", num_t_protein)
+    print("unique target peptide", len(set(target_peptide_list)))
     print("target peptide", num_t_peptide)
     print("decoy protein", num_d_protein)
     print("decoy peptide", num_d_peptide)
@@ -299,16 +305,31 @@ def get_all_peptide(con, q_limit: int, context: str, run_id: int) \
     #  something like that, note this data is in SCORE_PROTEIN or SCORE_PEPTIDE
 
 
-def get_all_link_for_protein(con) -> Dict[str, List[Tuple[str, float, int]]]:
+def get_all_link_for_protein(con, context, q_limit, run_id) -> Dict[str, List[Tuple[str, float, int]]]:
     c = con.cursor()
-    c.execute(
-        """SELECT PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID,
-        PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID, SCORE_PEPTIDE.SCORE, 
-        PEPTIDE.DECOY
-        FROM PEPTIDE_PROTEIN_MAPPING
-        INNER JOIN SCORE_PEPTIDE 
-        ON SCORE_PEPTIDE.PEPTIDE_ID = PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID
-        INNER JOIN PEPTIDE ON PEPTIDE.ID = SCORE_PEPTIDE.PEPTIDE_ID""")
+    if context == 'global':
+        c.execute(
+            """SELECT PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID,
+            PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID, SCORE_PEPTIDE.SCORE, 
+            PEPTIDE.DECOY
+            FROM PEPTIDE_PROTEIN_MAPPING
+            INNER JOIN SCORE_PEPTIDE 
+            ON SCORE_PEPTIDE.PEPTIDE_ID = PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID
+            INNER JOIN PEPTIDE ON PEPTIDE.ID = SCORE_PEPTIDE.PEPTIDE_ID
+            WHERE QVALUE<:q_limit AND SCORE_PEPTIDE.CONTEXT = 'global'""",
+            {'q_limit': q_limit})
+    elif context == 'run-specific':
+        c.execute(
+            """SELECT PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID,
+            PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID, SCORE_PEPTIDE.SCORE, 
+            PEPTIDE.DECOY
+            FROM PEPTIDE_PROTEIN_MAPPING
+            INNER JOIN SCORE_PEPTIDE 
+            ON SCORE_PEPTIDE.PEPTIDE_ID = PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID
+            INNER JOIN PEPTIDE ON PEPTIDE.ID = SCORE_PEPTIDE.PEPTIDE_ID
+            WHERE QVALUE<:q_limit AND SCORE_PEPTIDE.CONTEXT = 'run-specific' 
+            AND RUN_ID=:run_id""",
+            {'q_limit': q_limit, 'run_id': run_id})
     linked_peptide_dict = {}
     for row in c.fetchall():
         protein_id = str(row[0])

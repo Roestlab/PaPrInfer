@@ -1,6 +1,5 @@
 import bisect
 import itertools
-import time
 from typing import Dict, List, Tuple, Any
 
 from components import Component
@@ -67,10 +66,12 @@ class Graph:
                 self.make_edge_from_protein_id(current_protein,
                                                linked_peptide_dict)
 
-    def make_edge_from_protein_id(self, the_protein: Protein,
+    def make_edge_from_protein_id(self,
+                                  the_protein: Protein,
                                   linked_peptide_dict:
                                   Dict[str, List[
-                                      Tuple[str, float, int]]]) -> None:
+                                      Tuple[str, float, int]]]) \
+            -> None:
         """
         based the protein given, add peptides as edges to the current protein
         """
@@ -104,10 +105,10 @@ class Graph:
                 peptide_id = node.get_first_id()
                 # a list of protein sqlite id that links to this peptide
                 neighbour_list_pro = linked_protein_dict[peptide_id]
-                for neighbour_id, decoy in neighbour_list_pro:
-                    accession_list = protein_accession_dict[neighbour_id]
+                for protein_id, decoy in neighbour_list_pro:
+                    accession_list = protein_accession_dict[protein_id]
                     for accession in accession_list:
-                        a_protein = Protein([accession], neighbour_id, decoy)
+                        a_protein = Protein([accession], protein_id, decoy)
                         self.node_dict[node].append(a_protein)
 
     def node_in_graph(self, a_node: Node):
@@ -132,13 +133,19 @@ class Graph:
         #     writer.writerows(self.node_dict)
 
     def get_sort_keys(self) -> None:
-        # sort the keys
+
+        """
+        :param
+        """
+
+        # convert dict key to list (since dict key cannot be sorted)
+        # sort, then store
         keys_list = list(self.node_dict.keys())
         keys_list.sort()
         sorted_keys_list = keys_list
         self.sorted_keys = sorted_keys_list
 
-        # get all id (first id + target_decoy) of those keys
+        # get all id (first id + target_decoy) of those keys (in sorted order)
         sorted_id_list = []
         for keys in sorted_keys_list:
             sorted_id_list.append(keys.get_first_id() + keys.get_target_decoy())
@@ -150,11 +157,14 @@ class Graph:
 
     def collapse_graph(self) -> None:
 
-
-
         # for each node
         progress_count = 1
         for key, value in self.node_dict.items():
+
+            # skipping peptide for now
+            if isinstance(key, Peptide):
+                progress_count += 1
+                continue
 
             # if the node has been delete, skip
             if key.get_first_id() in self.node_to_delete:
@@ -171,13 +181,30 @@ class Graph:
                 neighbours_reorganized = self.reorder_neighbours(
                     current_neighbours)
 
+                # for neighbours_list in neighbours_reorganized:
+                #     for neighbour in neighbours_list:
+                #         print("peptide id", neighbour.get_first_id())
+
                 print(list(map(len, neighbours_reorganized)))
 
-                # then use that to check mergeability
-                self.check_for_merging(neighbours_reorganized)
+                # further group the neighbours
+                # as long as this also is not quadratic, its better
+                for index in range(len(neighbours_reorganized)):
+                    # skip the first one, since that neighbour list only maps
+                    # to 0 protein and the second one since that map to 1 protein
+                    if index == 0 or index == 1:
+                        continue
+
+                    neighbours_list = neighbours_reorganized[index]
+                    print("index", index)
+
+                    further_group = self.group_again(neighbours_list, key.get_first_id())
+                    print(list(map(len, further_group)))
+
+                    # then use that to check mergeability
+                    self.check_for_merging(further_group)
 
             progress_count += 1
-
             print("nodes collapsed", progress_count, len(self.node_dict),
                   "node is peptide", isinstance(key, Peptide))
 
@@ -194,7 +221,7 @@ class Graph:
         return max_edges
 
     def num_neighbour(self, node: Node) -> int:
-        return len(self.node_dict[node])
+        return len(self.node_dict.get(node))
 
     def reorder_neighbours(self, current_neighbours: List[Node]) \
             -> List[List[Node]]:
@@ -204,6 +231,9 @@ class Graph:
         number of neighbours, which is returned
         :param current_neighbours:
         :return: neighbours_reorganized
+        [0, 0, 28] means of the current neighbours of this protein (which are peptide).
+        0 map to exactly 0 protein, 0 map to exactly 1 protein,
+        28 map to exactly 2 proteins
         """
 
         neighbours_reorganized = []
@@ -219,13 +249,54 @@ class Graph:
         # for all neighbour
         for current_protein in current_neighbours:
             # find num of neighbours for current node
-            num_peptide_neighbours = self.num_neighbour(
-                current_protein)
+            num_peptide_neighbours = self.num_neighbour(current_protein)
             # append them to the list of list appropriately
             neighbours_reorganized[
                 num_peptide_neighbours].append(current_protein)
 
         return neighbours_reorganized
+
+    def group_again(self, all_peptides: List[Node], first_protein_id) \
+            -> List[List[Peptide]]:
+        """
+        terminology assumes we are trying to merge peptides
+        :param all_peptides is all the peptides that have the same number
+        of protein that they map to
+        :param first_protein_id is the protein that all these peptides definitely
+        maps to
+        """
+
+        peptide_same_2nd_protein_dict = {}
+        for peptide in all_peptides:
+            # is a neighbour and a protein
+            neighbour_and_protein = self.node_dict.get(peptide)
+
+            # print("num neighbours 2", len(neighbour_and_protein),
+            #       "peptide id", peptide.get_first_id(),
+            #       "peptide target decoy", peptide.get_target_decoy())
+            # needs to remove the protein object has this first_protein_id
+            for protein in neighbour_and_protein:
+                if protein.get_first_id() == first_protein_id:
+                    neighbour_and_protein.remove(protein)
+
+            neighbour_and_protein.sort()
+
+            # first neighbours is the one that was removed
+            second_neighbour = neighbour_and_protein[0]
+
+            # if key was not in the dict, setdefault return the default value,
+            # empty list here. if key is in, then function returns the value
+            peptide_same_2nd_protein_dict\
+                .setdefault(second_neighbour, []).append(peptide)
+
+
+        peptide_same_2nd_protein_list = []
+        # key is second neighbour (protein object)
+        # value is peptide that map to this second neighbour
+        for key, value in peptide_same_2nd_protein_dict.items():
+            peptide_same_2nd_protein_list.append(value)
+
+        return peptide_same_2nd_protein_list
 
     """methods for step 2b: merging"""
 
@@ -236,6 +307,7 @@ class Graph:
         for neighbour_list in neighbours_reorganized:
             for neighbour_pair in itertools.combinations(neighbour_list, 2):
                 if (
+                # the 2 both neighbour have not been delete yet
                     neighbour_pair[0].get_first_id() not in self.node_to_delete
                     and
                     neighbour_pair[1].get_first_id() not in self.node_to_delete
@@ -274,7 +346,19 @@ class Graph:
             these_neighbours.sort()
             those_neighbours.sort()
 
-        return these_neighbours == those_neighbours
+        assert len(these_neighbours) == len(those_neighbours)
+
+        # I dont know if python ordered list comparison for equality has
+        # early stop, such that when it reaches an index that is different
+        # it exits the equality comparison
+
+        is_the_same = True
+        for node_id in range(len(these_neighbours)):
+            if these_neighbours[node_id] != those_neighbours[node_id]:
+                is_the_same = False
+                break
+
+        return is_the_same
 
     def delete_node(self, current_node: Node) -> None:
 
@@ -298,14 +382,6 @@ class Graph:
             equivalent_protein = self.sorted_keys[index]
             equivalent_protein.add_id(accession_list)
             equivalent_protein.add_score(same_protein.get_score())
-
-        # all node.py's bottleneck is in the equality comparison used
-        # to find the equivalent_protein
-        # it calls the __eq__ function of protein or peptide
-        # which calls get_both_first which calls get both first id
-        # the problem about this is that for every
-        # call, the worse case is that it has to search through
-        # all keys, to find the correct protein
 
     """methods for step 3: separate"""
 
