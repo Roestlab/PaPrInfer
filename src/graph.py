@@ -161,7 +161,6 @@ class Graph:
         progress_count = 1
         for key, value in self.node_dict.items():
 
-            # skipping peptide for now
             if isinstance(key, Peptide):
                 progress_count += 1
                 continue
@@ -181,28 +180,30 @@ class Graph:
                 neighbours_reorganized = self.reorder_neighbours(
                     current_neighbours)
 
-                # for neighbours_list in neighbours_reorganized:
-                #     for neighbour in neighbours_list:
-                #         print("peptide id", neighbour.get_first_id())
+                # print(list(map(len, neighbours_reorganized)))
 
-                print(list(map(len, neighbours_reorganized)))
+                # the other method of merging
+                # not using anymore since it is a lot slower
+                # then use that to check mergeability
+                # if isinstance(key, Peptide):
+                #     self.check_for_merging(neighbours_reorganized)
+                #     continue
 
-                # further group the neighbours
-                # as long as this also is not quadratic, its better
-                for index in range(len(neighbours_reorganized)):
-                    # skip the first one, since that neighbour list only maps
-                    # to 0 protein and the second one since that map to 1 protein
-                    if index == 0 or index == 1:
+                # use recursion to group protein and then merge them
+                for num_protein_mapped_to in range(len(neighbours_reorganized)):
+                    # skip the first one, since that peptide in that neighbour
+                    # list maps to exactly 0 protein
+                    if num_protein_mapped_to == 0:
                         continue
 
-                    neighbours_list = neighbours_reorganized[index]
-                    print("index", index)
+                    neighbours_list = neighbours_reorganized[num_protein_mapped_to]
 
-                    further_group = self.group_again(neighbours_list, key.get_first_id())
-                    print(list(map(len, further_group)))
+                    # there are no peptide that map to num_protein_mapped_to protein
+                    if len(neighbours_list) == 0:
+                        continue
 
-                    # then use that to check mergeability
-                    self.check_for_merging(further_group)
+                    node_specific_dict = self.build_node_specific_dict(neighbours_list)
+                    self.grouping_recursion(neighbours_list, node_specific_dict)
 
             progress_count += 1
             print("nodes collapsed", progress_count, len(self.node_dict),
@@ -230,10 +231,9 @@ class Graph:
         list of list of protein where every protein in each sublist has the same
         number of neighbours, which is returned
         :param current_neighbours:
-        :return: neighbours_reorganized
-        [0, 0, 28] means of the current neighbours of this protein (which are peptide).
-        0 map to exactly 0 protein, 0 map to exactly 1 protein,
-        28 map to exactly 2 proteins
+        :return: neighbours_reorganized [0, 0, 28] means of the current
+        neighbours of this protein (which are peptide). 0 map to exactly 0
+        protein, 0 map to exactly 1 protein, 28 map to exactly 2 proteins
         """
 
         neighbours_reorganized = []
@@ -256,47 +256,92 @@ class Graph:
 
         return neighbours_reorganized
 
-    def group_again(self, all_peptides: List[Node], first_protein_id) \
-            -> List[List[Peptide]]:
+    def build_node_specific_dict(self, all_peptides: List[Node]) \
+            -> Dict[Node, List[Node]]:
         """
         terminology assumes we are trying to merge peptides
         :param all_peptides is all the peptides that have the same number
         of protein that they map to
-        :param first_protein_id is the protein that all these peptides definitely
-        maps to
+        :return type should be peptide map to a list of protein since I am only
+        using this for collapsing peptides
         """
 
-        peptide_same_2nd_protein_dict = {}
+        peptide_protein_dict = {}
         for peptide in all_peptides:
             # is a neighbour and a protein
             neighbour_and_protein = self.node_dict.get(peptide)
-
-            # print("num neighbours 2", len(neighbour_and_protein),
-            #       "peptide id", peptide.get_first_id(),
-            #       "peptide target decoy", peptide.get_target_decoy())
-            # needs to remove the protein object has this first_protein_id
-            for protein in neighbour_and_protein:
-                if protein.get_first_id() == first_protein_id:
-                    neighbour_and_protein.remove(protein)
-
             neighbour_and_protein.sort()
+            peptide_protein_dict[peptide] = neighbour_and_protein
 
-            # first neighbours is the one that was removed
-            second_neighbour = neighbour_and_protein[0]
+        return peptide_protein_dict
 
-            # if key was not in the dict, setdefault return the default value,
-            # empty list here. if key is in, then function returns the value
-            peptide_same_2nd_protein_dict\
-                .setdefault(second_neighbour, []).append(peptide)
+    def grouping_recursion(self, some_peptides: List[Node],
+                           peptide_protein_dict: Dict[Node, List[Node]]):
 
+        num_protein = []
 
-        peptide_same_2nd_protein_list = []
-        # key is second neighbour (protein object)
-        # value is peptide that map to this second neighbour
-        for key, value in peptide_same_2nd_protein_dict.items():
-            peptide_same_2nd_protein_list.append(value)
+        for peptide, protein in peptide_protein_dict.items():
+            num_protein.append(len(protein))
 
-        return peptide_same_2nd_protein_list
+        # the length of the set is the number of unique element in the list
+        # which should be 1, meaning that they all have the same number of nodes
+        assert len(set(num_protein)) < 2
+
+        # this is the number of protein that not been used for grouping
+        num_protein_all = list(set(num_protein))[0]
+
+        # build peptide protein dict
+        peptide_protein_dict = {}
+
+        # the peptide in some_peptide all were part of a list that
+        # all map to the same set of protein
+
+        # base case (we have gotten to final protein)
+        # if there are no other protein that it map to, then this means
+        # these peptide only map to this set
+        if num_protein_all == 0:
+
+            # merge all the peptides
+            # TODO: refactor and extract this as a method
+            final_peptide_group = some_peptides[0]
+            for peptide in some_peptides:
+                self.delete_node(peptide)
+                id_list = peptide.get_id()
+                score = peptide.get_score()
+                final_peptide_group.add_id(id_list)
+                # this only keeps the max score of them two
+                final_peptide_group.add_score(score)
+                # TODO: bottleneck
+                self.key_add_id(final_peptide_group, id_list)
+
+        # recursive case, not 0
+        else:
+            peptide_same_next_protein_dict = {}
+            for peptide, protein in peptide_protein_dict.items():
+
+                protein.sort()
+                next_same_protein = protein[0]
+
+                # if key was not in the dict, setdefault return the default value,
+                # empty list here. if key is in, then function returns the value
+                peptide_same_next_protein_dict \
+                    .setdefault(next_same_protein, []).append(peptide)
+
+                peptide_same_next_protein_list = []
+                for next_same_protein, peptide_list in peptide_same_next_protein_dict.items():
+                    peptide_same_next_protein_list.append(peptide_list)
+
+                # remove the next protein that is the same
+                protein.remove(next_same_protein)
+
+                # I dont need to restrict the peptide_protein_dict to just
+                # the peptide share the first protein, since no recursion counts
+                # that, it just counts how many have not been removed
+
+                # recursion
+                for peptide_list in peptide_same_next_protein_list:
+                    self.grouping_recursion(peptide_list, peptide_protein_dict)
+
 
     """methods for step 2b: merging"""
 
@@ -307,7 +352,7 @@ class Graph:
         for neighbour_list in neighbours_reorganized:
             for neighbour_pair in itertools.combinations(neighbour_list, 2):
                 if (
-                # the 2 both neighbour have not been delete yet
+                # only if the 2 both neighbour have not been delete yet
                     neighbour_pair[0].get_first_id() not in self.node_to_delete
                     and
                     neighbour_pair[1].get_first_id() not in self.node_to_delete
