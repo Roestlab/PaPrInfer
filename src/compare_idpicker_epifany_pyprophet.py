@@ -6,12 +6,11 @@ Created on Sun Feb 28 10:07:46 2021
 @author: kren
 """
 
-from pyopenms import IdXMLFile
 import collections
 import sqlite3
 import sys
-import numpy
-import matplotlib.pyplot as plt
+
+from pyopenms import IdXMLFile
 
 
 def main(epifany_file: str, idpicker_file: str, threshold: str):
@@ -150,7 +149,31 @@ def main(epifany_file: str, idpicker_file: str, threshold: str):
     # print("num only in idpicker", len(only_in_idpicker))
 
 
-    return len(idpicker_distinct_protein), len(epifany_distinct_proteins)
+
+    c.execute(
+        """ 
+        SELECT SCORE_PROTEIN.PROTEIN_ID
+        FROM SCORE_PROTEIN
+        INNER JOIN PROTEIN ON PROTEIN.ID = SCORE_PROTEIN.PROTEIN_ID
+        WHERE SCORE_PROTEIN.CONTEXT = 'global'
+        AND QVALUE <= :threshold
+        AND PROTEIN.DECOY = 0
+        """, {'threshold': float(threshold)}
+    )
+
+    pyprophet_proteins = []
+
+    for row in c.fetchall():
+        protein = row[0]
+
+        pyprophet_proteins.append(protein)
+
+    pyprophet_distinct_protein = set(pyprophet_proteins)
+    print("pyprophet", len(pyprophet_distinct_protein))
+
+
+    return len(idpicker_distinct_protein), len(epifany_distinct_proteins),\
+           len(pyprophet_distinct_protein)
 
 
 if __name__ == "__main__":
@@ -158,6 +181,7 @@ if __name__ == "__main__":
     # print("""usage: osw_idXML_converter.py <sql file path> <q-value threshold for peptides>""")
     # main(sys.argv[1], sys.argv[2])
     # epifany output file, idpicker output file, q-value threshold
+    # pyprophet output file is the same as the idpicker
     main(sys.argv[1], sys.argv[2], sys.argv[3])
 
 

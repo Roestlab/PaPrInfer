@@ -90,11 +90,9 @@ def initialize(protein_peptide_graph: Graph, con,
             num_d_peptide += 1
         elif isinstance(node, Protein) and node.get_target_decoy() == '1':
             num_d_protein += 1
-    print("total nodes", len(protein_peptide_graph.get_node_dict()))
 
-    print("unique target protein", len(set(target_protein_list)))
+    print("total nodes", len(protein_peptide_graph.get_node_dict()))
     print("target protein", num_t_protein)
-    print("unique target peptide", len(set(target_peptide_list)))
     print("target peptide", num_t_peptide)
     print("decoy protein", num_d_protein)
     print("decoy peptide", num_d_peptide)
@@ -151,11 +149,9 @@ def separate(protein_peptide_graph: Graph) -> List[Component]:
     # for all white peptide nodes, explore them
     component_list = []
 
-    print(protein_peptide_graph.discovered_nodes)
-
     for node in protein_peptide_graph.node_dict.keys():
 
-        # if it is white and not deleted)
+        # if it is white and not deleted
         if protein_peptide_graph.is_white(node) and \
                 node.get_first_id() not in protein_peptide_graph.node_to_delete:
 
