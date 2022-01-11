@@ -65,7 +65,7 @@ def add_protein_hit(protein_hit_list, protein_accession_list: List[str], is_deco
 def fill_peptide_identification(con,
                                 peptide_id_list: List[ProteinIdentification],
                                 protein_accession_dict: Dict[str, List[str]],
-                                context: str, run_id: int):
+                                context: str, run_id: int, pep_limit: int):
     c = con.cursor()
     # TODO: here is where threshold PEP happens
     if context == 'global':
@@ -74,14 +74,16 @@ def fill_peptide_identification(con,
             Score_Peptide.peptide_id, PEPTIDE.DECOY
             FROM Peptide
             INNER JOIN Score_Peptide ON Score_Peptide.peptide_id = Peptide.id
-            WHERE SCORE_PEPTIDE.CONTEXT = 'global'""")
+            WHERE SCORE_PEPTIDE.CONTEXT = 'global'
+            AND PEP<:pep_limit""", {'pep_limit': pep_limit})
     elif context == 'run-specific':
         c.execute(
             """SELECT Score_Peptide.PEP, Peptide.unmodified_sequence, 
             Score_Peptide.peptide_id, PEPTIDE.DECOY
             FROM Peptide
             INNER JOIN Score_Peptide ON Score_Peptide.peptide_id = Peptide.id
-            WHERE CONTEXT='run-specific' AND RUN_ID=:run_id""", {'run_id', run_id})
+            WHERE CONTEXT='run-specific' AND RUN_ID=:run_id
+            AND PEP<:pep_limit""", {'run_id': run_id, 'pep_limit': pep_limit})
 
     linked_protein_dict = get_all_link_for_peptide(con)
 
@@ -159,8 +161,9 @@ def store_on_disk(out_file_name, protein_id_list, peptide_id_list):
     IdXMLFile().store(out_file_name, protein_id_list, peptide_id_list)
 
 
-def main(input_file: str, out_file: str, context: str, run_id: str) -> None:
+def main(input_file: str, out_file: str, context: str, run_id: str, pep_limit: str) -> None:
     run_id = int(run_id)
+    pep_limit = int(pep_limit)
 
     con = begin_connection(input_file)
 
@@ -182,7 +185,7 @@ def main(input_file: str, out_file: str, context: str, run_id: str) -> None:
     # do the same thing with peptide identification
     peptide_id_list = []
     fill_peptide_identification(con, peptide_id_list, protein_accession_dict,
-                                context, run_id)
+                                context, run_id, pep_limit)
 
     # then finally store on disk
     store_on_disk(out_file, protein_id_list, peptide_id_list)
@@ -191,6 +194,5 @@ def main(input_file: str, out_file: str, context: str, run_id: str) -> None:
 if __name__ == "__main__":
     # if len(sys.argv) != 3:
     # print("""usage: osw_idXML_converter.py <sql file path> out file path""")
-    # TODO: add threshold PEP option
-    # input_file, out_file, context, run_id
-    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    # input_file, out_file, context, run_id, pep_limit
+    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
