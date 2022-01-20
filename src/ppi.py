@@ -99,8 +99,8 @@ def initialize(protein_peptide_graph: Graph, con,
 
 
 def collapse(protein_peptide_graph: Graph) -> None:
-    protein_peptide_graph.collapse_graph_old()
-    # protein_peptide_graph.collapse_graph()
+    # protein_peptide_graph.collapse_graph_old()
+    protein_peptide_graph.collapse_graph()
 
 
 # def visualize(protein_peptide_graph):

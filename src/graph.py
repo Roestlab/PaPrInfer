@@ -346,9 +346,6 @@ class Graph:
 
         num_protein = []
 
-        # TODO: in the new implementation, some_peptides is not guaranteed to
-        #  share a protein, so removing protein needs to be moved
-
         # remove the protein, then count the number
         # for each key
         for peptide in some_peptides:
@@ -387,10 +384,9 @@ class Graph:
                 # this only keeps the max score of them two
                 final_peptide_group.add_score(score)
 
-            # TODO: bottleneck
-            # we no longer need this, due to new implementation
-            # final_id_list = final_peptide_group.get_id()
-            # self.key_add_id(final_peptide_group, final_id_list)
+            # TODO supposed bottleneck
+            final_id_list = final_peptide_group.get_id()
+            self.key_add_id(final_peptide_group, final_id_list)
 
         # recursive case, not 0
         else:
@@ -539,7 +535,7 @@ class Graph:
         # if protein, get a peptide list, if peptide get a protein list
         neighbour_list = self.node_dict.get(start_node)
 
-        # for all neighbouring white node, explore them
+        # for all neighbouring white node that is not deleted, explore them
         for current_neighbour in neighbour_list:
             if self.is_white(current_neighbour) \
                     and (current_neighbour.get_first_id()
