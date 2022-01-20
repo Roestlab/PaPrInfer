@@ -78,7 +78,9 @@ def initialize(protein_peptide_graph: Graph, con,
     num_d_peptide = 0
     num_d_protein = 0
     num_t_peptide = 0
+    num_edges = 0
     for node in protein_peptide_graph.node_dict:
+        num_edges += len(protein_peptide_graph.node_dict[node])
         if isinstance(node, Protein) and node.get_target_decoy() == '0':
             num_t_protein += 1
         elif isinstance(node, Peptide) and node.get_target_decoy() == '0':
@@ -89,6 +91,7 @@ def initialize(protein_peptide_graph: Graph, con,
             num_d_protein += 1
 
     print("total nodes", len(protein_peptide_graph.get_node_dict()))
+    print("total edges", num_edges)
     print("target protein", num_t_protein)
     print("target peptide", num_t_peptide)
     print("decoy protein", num_d_protein)
@@ -96,8 +99,8 @@ def initialize(protein_peptide_graph: Graph, con,
 
 
 def collapse(protein_peptide_graph: Graph) -> None:
-    # protein_peptide_graph.collapse_graph_old()
-    protein_peptide_graph.collapse_graph()
+    protein_peptide_graph.collapse_graph_old()
+    # protein_peptide_graph.collapse_graph()
 
 
 # def visualize(protein_peptide_graph):
