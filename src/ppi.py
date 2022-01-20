@@ -8,6 +8,7 @@ import sys
 from graph import Graph
 from components import Component
 from node import Peptide, Protein
+from collections import Counter
 
 """main"""
 
@@ -77,14 +78,10 @@ def initialize(protein_peptide_graph: Graph, con,
     num_d_peptide = 0
     num_d_protein = 0
     num_t_peptide = 0
-    target_protein_list = []
-    target_peptide_list = []
-    for node in protein_peptide_graph.get_node_dict():
+    for node in protein_peptide_graph.node_dict:
         if isinstance(node, Protein) and node.get_target_decoy() == '0':
-            target_protein_list.append(node.get_first_id())
             num_t_protein += 1
         elif isinstance(node, Peptide) and node.get_target_decoy() == '0':
-            target_peptide_list.append(node.get_first_id())
             num_t_peptide += 1
         elif isinstance(node, Peptide) and node.get_target_decoy() == '1':
             num_d_peptide += 1
@@ -99,6 +96,7 @@ def initialize(protein_peptide_graph: Graph, con,
 
 
 def collapse(protein_peptide_graph: Graph) -> None:
+    # protein_peptide_graph.collapse_graph_old()
     protein_peptide_graph.collapse_graph()
 
 
@@ -210,11 +208,15 @@ def separate(protein_peptide_graph: Graph) -> List[Component]:
 
 def reduce(component_list: List[Component], con) -> None:
     min_pro_list = []
+
     for component in component_list:
 
         # this is a list of list of protein accession
         # sublist is one meta-protein vertex, contain multiple protein accession
         component_accession_list = component.make_protein_list()
+
+        if len(component_accession_list) == 0:
+            continue
 
         # this just a list of list of list of protein accession
         # sublist of it all belongs to the same component
@@ -222,8 +224,7 @@ def reduce(component_list: List[Component], con) -> None:
         min_pro_list.append(component_accession_list)
 
     create_table_protein_group(con)
-    # TODO
-    # create_table_protein_group_peptide_mapping(con)
+    create_table_protein_group_peptide_mapping(con)
     protein_group_data_entry(con, min_pro_list)
 
     print("reduced")
@@ -353,7 +354,7 @@ def get_all_protein_accession(con) -> Dict[str, List[str]]:
     # if there are any row, split the row (which are text) into List[str]
     for row in c.fetchall():
         protein_sqlite_id = str(row[0])
-        accession_sublist = row[1].split(";")
+        accession_sublist = row[1].split(",")
         # if key was not in the dict, setdefault return the default value,
         # empty list here. if it was then it returns the value
         protein_accession_dict.\
@@ -399,6 +400,7 @@ def create_table_protein_group(con) -> None:
               PROTEIN_ID INTEGER,
               SCORE REAL,
               DECOY INT);""")
+    con.commit()
     c.close()
 
 
@@ -409,6 +411,7 @@ def create_table_protein_group_peptide_mapping(con) -> None:
               PROTEIN_GROUP_ID INTEGER, 
               PEPTIDE_ID INTEGER
               );""")
+    con.commit()
     c.close()
 
 
@@ -435,12 +438,12 @@ def protein_group_data_entry(con, min_pro_list: List[List[Tuple[
                           )
                 con.commit()
             unique_peptide_id_list = list(set(peptide_id_list))
-            # for peptide_id in unique_peptide_id_list:
-            #     c.execute("""INSERT INTO PROTEIN_GROUP_PEPTIDE_MAPPING(
-            #     PROTEIN_GROUP_ID, PEPTIDE_ID) VALUES(:protein_group_id, :peptide_id)
-            #     """, {'protein_group_id': protein_group_id,
-            #           'peptide_id': peptide_id})
-            #     con.commit()
+            for peptide_id in unique_peptide_id_list:
+                c.execute("""INSERT INTO PROTEIN_GROUP_PEPTIDE_MAPPING(
+                PROTEIN_GROUP_ID, PEPTIDE_ID) VALUES(:protein_group_id, :peptide_id)
+                """, {'protein_group_id': protein_group_id,
+                      'peptide_id': peptide_id})
+                con.commit()
             protein_group_id += 1
         component_id += 1
     c.close()

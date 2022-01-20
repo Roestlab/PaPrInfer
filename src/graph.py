@@ -1,5 +1,6 @@
 import bisect
 import itertools
+import sys
 from typing import Dict, List, Tuple, Any
 
 from components import Component
@@ -55,12 +56,11 @@ class Graph:
         can exist in multiple protein sqlite ids)
         """
         for protein_id, decoy in protein_id_list:
-
             protein_accession_list = protein_accession_dict[protein_id]
-
             for protein_accession in protein_accession_list:
-                current_protein = Protein([protein_accession], protein_id,
-                                          decoy)
+                current_protein = Protein([protein_accession], protein_id, decoy)
+
+                # if node is not in graph, make empty list first
                 if not self.node_in_graph(current_protein):
                     self.node_dict[current_protein] = []
                 self.make_edge_from_protein_id(current_protein,
@@ -77,6 +77,10 @@ class Graph:
         """
 
         protein_id = the_protein.get_first_sqlite_id()
+
+        if protein_id not in linked_peptide_dict:
+            return
+
         neighbour_list_pep = linked_peptide_dict[protein_id]
         # neighbour list is just a list of peptide ids, with score and decoy
         at_least_one = False
@@ -85,7 +89,6 @@ class Graph:
             if self.node_in_graph(a_peptide):
                 self.node_dict[the_protein].append(a_peptide)
                 at_least_one = True
-
         if not at_least_one:
             self.delete_node(the_protein)
 
@@ -102,7 +105,12 @@ class Graph:
         """
         for node in self.node_dict:
             if isinstance(node, Peptide):
+
                 peptide_id = node.get_first_id()
+
+                if peptide_id not in linked_protein_dict:
+                    continue
+
                 # a list of protein sqlite id that links to this peptide
                 neighbour_list_pro = linked_protein_dict[peptide_id]
                 for protein_id, decoy in neighbour_list_pro:
@@ -157,6 +165,42 @@ class Graph:
 
     def collapse_graph(self) -> None:
 
+        key_list = list(self.node_dict)
+
+        all_nodes_reorganized = self.reorder_neighbours(key_list)
+
+        # TODO: Better name
+        max_num = len(all_nodes_reorganized)
+
+        progress_count = 1
+
+        for num_edges in range(len(all_nodes_reorganized)):
+
+            # skip the group of protein that only map 0 proteins
+            if num_edges == 0:
+                continue
+
+            same_edges_node_list = all_nodes_reorganized[num_edges]
+
+            # there are no node that have exactly num_edges edges
+            if len(same_edges_node_list) == 0:
+                print(progress_count, max_num, "no node")
+                progress_count += 1
+                continue
+
+            # start this by first subset (and clone) the node dict
+            specific_dict = {}
+            self.build_specific_node_dict(same_edges_node_list, specific_dict)
+            # then pass the neighbour list and the dict into recursion
+            # first protein to remove is key, since all neighbours in
+            # neighbour_list share this
+            self.grouping_recursion(same_edges_node_list, specific_dict)
+
+            print(progress_count, max_num)
+            progress_count += 1
+
+
+    def collapse_graph_old(self) -> None:
         # for each node
         progress_count = 1
         for key, value in self.node_dict.items():
@@ -166,6 +210,7 @@ class Graph:
                 progress_count += 1
                 continue
 
+            # code for skipping proteins
             # if isinstance(key, Protein):
             #     progress_count += 1
             #     continue
@@ -190,10 +235,10 @@ class Graph:
                 #     continue
 
                 # use recursion to group protein and then merge them
+                # TODO, change to range (1, len(...))?
                 for num_protein_mapped_to in range(len(neighbours_reorganized)):
                     # skip the first one, since that peptide in that neighbour
                     # list maps to exactly 0 protein
-                    # TODO, remove this and use range (1, len(...))
                     if num_protein_mapped_to == 0:
                         continue
 
@@ -203,43 +248,13 @@ class Graph:
                     if len(neighbours_list) == 0:
                         continue
 
-                    temp_list = []
-                    for neighbours in neighbours_list:
-                        temp_list.append(neighbours.get_first_id())
-
-                    # if progress_count == 1:
-                    #     print("the key", key.get_first_id(), "the value", temp_list,
-                    #           "the index", num_protein_mapped_to,
-                    #           "\n")
-
-                    # start this by first subset (and clone) the node dict
+                    # specific_dict is just a subset (and clone) of node dict
                     specific_dict = {}
                     self.build_specific_node_dict(neighbours_list, specific_dict)
                     # then pass the neighbour list and the dict into recursion
                     # first protein to remove is key, since all neighbours in
                     # neighbour_list share this
-                    self.grouping_recursion(neighbours_list, key, specific_dict)
-
-
-                    temp_list = []
-                    temp_list_2 = []
-                    for neighbours in neighbours_list:
-                        temp_list.append(neighbours.get_id())
-                        temp_list.append(
-                            neighbours.get_first_id() + neighbours.get_target_decoy() in self.node_to_delete)
-
-                    if progress_count == 1:
-                        print("after merging")
-                        print(
-                            "temp list", temp_list
-                            )
-
-            if key.get_first_id() in ['O75170', 'O75170-4', 'O75170-5', 'O75170-3', 'O75170-6']:
-                for node in self.node_dict:
-                    if node.get_first_id() in ['O75170', 'O75170-4', 'O75170-5', 'O75170-3', 'O75170-6']:
-                        print("id in key")
-                        print(node.get_id())
-
+                    self.grouping_recursion(neighbours_list, specific_dict)
 
             progress_count += 1
             print("nodes collapsed", progress_count, len(self.node_dict),
@@ -314,7 +329,6 @@ class Graph:
 
 
     def grouping_recursion(self, some_peptides: List[Node],
-                           removed_protein: Node,
                            peptide_protein_dict: Dict[Node, List[Node]]):
         """terminology assume we are merging peptides
         first build a dict based on the peptides given, but without the
@@ -332,29 +346,24 @@ class Graph:
 
         num_protein = []
 
+        # TODO: in the new implementation, some_peptides is not guaranteed to
+        #  share a protein, so removing protein needs to be moved
+
         # remove the protein, then count the number
+        # for each key
         for peptide in some_peptides:
+            # get the value
             protein = peptide_protein_dict.get(peptide)
-            protein.remove(removed_protein)
+            # count the rest
             num_protein.append(len(protein))
 
-        # the length of the set is the number of unique element in the list
-        # which should be 1, meaning that they all have the same number of nodes
+        # the length of the set is the number of unique element in num_protein (
+        # i.e. how many different number of proteins do these some_peptides have
+        # which should be 1, meaning that they all have the same number
         assert len(set(num_protein)) < 2
 
         # this is the number of protein that not been used for grouping
         num_protein_all = list(set(num_protein))[0]
-
-        # TODO: remove testing
-        # temp_list = []
-        # for peptide in some_peptides:
-        #     temp_list.append(peptide.get_first_id())
-        #
-        # temp_list.sort()
-        # if temp_list == ['O75170', 'O75170-3', 'O75170-4', 'O75170-5', 'O75170-6']:
-        #     print("the protein to be checked", temp_list, "num protein all", num_protein_all, "\n")
-        # testing ends
-
 
         # the peptide in some_peptide all were part of a list that
         # all map to the same set of protein
@@ -374,21 +383,14 @@ class Graph:
                 id_list = peptide.get_id()
                 score = peptide.get_score()
                 final_peptide_group.add_id(id_list)
-                # TODO remove testing
-                # if peptide.get_first_id() in ['O75170-5', 'O75170', 'O75170-4', 'O75170-3', 'O75170-6']:
-                #     print(
-                #         "current protein", peptide.get_first_id(),
-                #         "final protein first id", final_peptide_group.get_first_id(),
-                #         "final protein all ids", final_peptide_group.get_id(),
-                #         "\n"
-                #         )
 
                 # this only keeps the max score of them two
                 final_peptide_group.add_score(score)
 
             # TODO: bottleneck
-            final_id_list = final_peptide_group.get_id()
-            self.key_add_id(final_peptide_group, final_id_list)
+            # we no longer need this, due to new implementation
+            # final_id_list = final_peptide_group.get_id()
+            # self.key_add_id(final_peptide_group, final_id_list)
 
         # recursive case, not 0
         else:
@@ -414,7 +416,13 @@ class Graph:
             # recursion
             # each peptide list share the first protein on the list
             for next_same_protein, peptide_list in peptide_same_next_protein_dict.items():
-                self.grouping_recursion(peptide_list, next_same_protein, peptide_protein_dict)
+                for peptide in peptide_list:
+                    # get the value
+                    protein = peptide_protein_dict.get(peptide)
+                    # remove that protein
+                    protein.remove(next_same_protein)
+
+                self.grouping_recursion(peptide_list, peptide_protein_dict)
 
 
     """methods for step 2b: merging"""

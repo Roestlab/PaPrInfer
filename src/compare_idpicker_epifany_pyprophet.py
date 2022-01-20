@@ -150,6 +150,8 @@ def main(epifany_file: str, idpicker_file: str, threshold: str):
 
 
 
+    # TODO: need to use a different file for pyprophet, because
+    # the new file change is destructive
     c.execute(
         """ 
         SELECT SCORE_PROTEIN.PROTEIN_ID

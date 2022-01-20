@@ -31,6 +31,9 @@ class Component:
         component_min_pro_list = []
         claimed_peptide = {}
 
+        if len(self._protein_dict) == 0:
+            return []
+
         while not self.all_component_peptides_covered():
 
             # find unselected protein with the most edges to uncovered peptide
@@ -64,7 +67,7 @@ class Component:
                         max_score = current_score
                     self._covered_peptide[current_peptide.get_first_id()] = ''
                     # TODO: I do have extend now, putting all peptide to the
-                    #  same list, but if we need to have peptide group, then
+                    #  same list, but if we need to have peptide group in osw, then
                     #  need to change to append
                     claimed_peptide.setdefault(
                         currently_selected_protein.get_first_id(), []).extend(
@@ -75,6 +78,7 @@ class Component:
 
             currently_selected_protein.set_score(max_score)
             component_min_pro_list.append(currently_selected_protein)
+
 
         component_accession_list = []
         # component_min_pro_list is a list of protein that are selected
@@ -98,7 +102,6 @@ class Component:
         :return:
         """
 
-        # pick any protein from the component
         most_edges_protein = random.choice(list(self._protein_dict.keys()))
 
         # record its number of edges
@@ -120,6 +123,7 @@ class Component:
 
         if most_uncovered == 0:
             return None
+
 
         return most_edges_protein
 
