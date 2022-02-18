@@ -14,7 +14,7 @@ class Graph:
     """
     node_dict: Dict[Node, List[Node]]
     node_to_delete: Dict[str, str]
-    # node_to_add_id: dict
+    accession_object: Dict[str, Node]
     discovered_nodes: Dict[str, str]
     explored_nodes: Dict[str, str]
     sorted_keys = List[Node]
@@ -23,7 +23,7 @@ class Graph:
     def __init__(self):
         self.node_dict = {}
         self.node_to_delete = {}
-        # self.node_to_add_id = {}
+        self.accession_object = {}
         self.discovered_nodes = {}
         self.explored_nodes = {}
 
@@ -58,7 +58,8 @@ class Graph:
         for protein_id, decoy in protein_id_list:
             protein_accession_list = protein_accession_dict[protein_id]
             for protein_accession in protein_accession_list:
-                current_protein = Protein([protein_accession], protein_id, decoy)
+                current_protein = Protein([protein_accession], protein_id,
+                                          decoy)
 
                 # if node is not in graph, make empty list first
                 if not self.node_in_graph(current_protein):
@@ -199,7 +200,6 @@ class Graph:
             print(progress_count, max_num)
             progress_count += 1
 
-
     def collapse_graph_old(self) -> None:
         # for each node
         progress_count = 1
@@ -242,7 +242,8 @@ class Graph:
                     if num_protein_mapped_to == 0:
                         continue
 
-                    neighbours_list = neighbours_reorganized[num_protein_mapped_to]
+                    neighbours_list = neighbours_reorganized[
+                        num_protein_mapped_to]
 
                     # there are no peptide that map to num_protein_mapped_to protein
                     if len(neighbours_list) == 0:
@@ -250,7 +251,8 @@ class Graph:
 
                     # specific_dict is just a subset (and clone) of node dict
                     specific_dict = {}
-                    self.build_specific_node_dict(neighbours_list, specific_dict)
+                    self.build_specific_node_dict(neighbours_list,
+                                                  specific_dict)
                     # then pass the neighbour list and the dict into recursion
                     # first protein to remove is key, since all neighbours in
                     # neighbour_list share this
@@ -326,7 +328,6 @@ class Graph:
             neighbour_and_protein = self.node_dict.get(peptide).copy()
             neighbour_and_protein.sort()
             peptide_protein_dict[peptide] = neighbour_and_protein
-
 
     def grouping_recursion(self, some_peptides: List[Node],
                            peptide_protein_dict: Dict[Node, List[Node]]):
@@ -420,7 +421,6 @@ class Graph:
 
                 self.grouping_recursion(peptide_list, peptide_protein_dict)
 
-
     """methods for step 2b: merging"""
 
     def check_for_merging(self, neighbours_reorganized: List[List[Node]]) \
@@ -430,12 +430,14 @@ class Graph:
         for neighbour_list in neighbours_reorganized:
             for neighbour_pair in itertools.combinations(neighbour_list, 2):
                 if (
-                # only if the 2 both neighbour have not been delete yet
-                    neighbour_pair[0].get_first_id() not in self.node_to_delete
-                    and
-                    neighbour_pair[1].get_first_id() not in self.node_to_delete
+                        # only if the 2 both neighbour have not been delete yet
+                        neighbour_pair[
+                            0].get_first_id() not in self.node_to_delete
+                        and
+                        neighbour_pair[
+                            1].get_first_id() not in self.node_to_delete
 
-                # then compare their neighbours
+                        # then compare their neighbours
                 ) and self.compare_neighbours(neighbour_pair):
 
                     # either both target and both decoy
@@ -508,6 +510,15 @@ class Graph:
 
     """methods for step 3: separate"""
 
+    def make_accession_object_dict(self) -> None:
+
+        # for all node
+        for node in self.node_dict:
+            # if not deleted
+            if node not in self.node_to_delete:
+                # map its first id to the node object itself
+                self.accession_object[node.get_first_id()] = node
+
     def set_discovered(self, start_node: Node) -> None:
         self.discovered_nodes[start_node.get_first_id()
                               + start_node.get_target_decoy()] = ''
@@ -547,7 +558,12 @@ class Graph:
         # after the nodes are blacken,
         # add the protein or peptide into the a_component
         # with its neighbours
-        if isinstance(start_node, Protein):
+        # but get the object that is key, instead of the value
+        # through the dict accession_object
+
+        component_node = self.accession_object[start_node.get_first_id()]
+
+        if isinstance(component_node, Protein):
             a_component.add_protein(start_node, neighbour_list)
-        elif isinstance(start_node, Peptide):
+        elif isinstance(component_node, Peptide):
             a_component.add_peptide(start_node, neighbour_list)

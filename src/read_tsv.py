@@ -84,6 +84,8 @@ def modify_osw(osw_filename, all_peptide):
 
     # the matching peptide id to thsi protein id, was not scored
 
+    # ok so I really should delete the one in score peptide too
+
     c.execute(
         """SELECT ID
         FROM PROTEIN"""
