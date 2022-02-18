@@ -385,8 +385,8 @@ class Graph:
                 final_peptide_group.add_score(score)
 
             # TODO supposed bottleneck
-            final_id_list = final_peptide_group.get_id()
-            self.key_add_id(final_peptide_group, final_id_list)
+            # final_id_list = final_peptide_group.get_id()
+            # self.key_add_id(final_peptide_group, final_id_list)
 
         # recursive case, not 0
         else:

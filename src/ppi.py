@@ -316,7 +316,7 @@ def get_all_link_for_protein(con, context, q_limit, run_id) -> Dict[str, List[Tu
             INNER JOIN SCORE_PEPTIDE 
             ON SCORE_PEPTIDE.PEPTIDE_ID = PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID
             INNER JOIN PEPTIDE ON PEPTIDE.ID = SCORE_PEPTIDE.PEPTIDE_ID
-            WHERE QVALUE<:q_limit AND SCORE_PEPTIDE.CONTEXT = 'global'""",
+            WHERE QVALUE<=:q_limit AND SCORE_PEPTIDE.CONTEXT = 'global'""",
             {'q_limit': q_limit})
     elif context == 'run-specific':
         c.execute(
@@ -327,7 +327,7 @@ def get_all_link_for_protein(con, context, q_limit, run_id) -> Dict[str, List[Tu
             INNER JOIN SCORE_PEPTIDE 
             ON SCORE_PEPTIDE.PEPTIDE_ID = PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID
             INNER JOIN PEPTIDE ON PEPTIDE.ID = SCORE_PEPTIDE.PEPTIDE_ID
-            WHERE QVALUE<:q_limit AND SCORE_PEPTIDE.CONTEXT = 'run-specific' 
+            WHERE QVALUE<=:q_limit AND SCORE_PEPTIDE.CONTEXT = 'run-specific' 
             AND RUN_ID=:run_id""",
             {'q_limit': q_limit, 'run_id': run_id})
     linked_peptide_dict = {}

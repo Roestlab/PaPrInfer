@@ -24,7 +24,8 @@ def begin_connection(db_name: str):
 
 
 def fill_protein_identification(con, protein_identification,
-                                protein_accession_dict: Dict[str, List[str]], context,
+                                protein_accession_dict: Dict[str, List[str]],
+                                context,
                                 run_id):
     # Each ProteinIdentification object stores a vector of protein hits
     target_protein_hit_list = []
@@ -34,16 +35,19 @@ def fill_protein_identification(con, protein_identification,
     decoy_protein_accession_list = []
 
     for protein_id, decoy in protein_id_list:
-        if decoy == 0: # if not decoy, is target
-            target_protein_accession_list.extend(protein_accession_dict[protein_id])
-        elif decoy == 1: # is decoy
-            decoy_protein_accession_list.extend(protein_accession_dict[protein_id])
+        list_of_protein_accession = protein_accession_dict[protein_id]
+
+        if decoy == 0:  # if not decoy, is target
+            target_protein_accession_list.extend(list_of_protein_accession)
+        elif decoy == 1:  # is decoy
+            decoy_protein_accession_list.extend(list_of_protein_accession)
     target_protein_accession_list = list(set(target_protein_accession_list))
     decoy_protein_accession_list = list(set(decoy_protein_accession_list))
 
     # last parameter ask whether or not it is a decoy
-    add_protein_hit(target_protein_hit_list, target_protein_accession_list, False)
-    add_protein_hit(decoy_protein_hit_list, decoy_protein_accession_list, True)
+    make_protein_hit(target_protein_hit_list, target_protein_accession_list,
+                     False)
+    make_protein_hit(decoy_protein_hit_list, decoy_protein_accession_list, True)
 
     all_protein_hit_list = []
     all_protein_hit_list.extend(target_protein_hit_list)
@@ -51,7 +55,8 @@ def fill_protein_identification(con, protein_identification,
     protein_identification.setHits(all_protein_hit_list)
 
 
-def add_protein_hit(protein_hit_list, protein_accession_list: List[str], is_decoy):
+def make_protein_hit(protein_hit_list, protein_accession_list: List[str],
+                     is_decoy):
     for protein_accession in protein_accession_list:
         protein_hit = ProteinHit()
         protein_hit.setAccession(protein_accession)
@@ -75,7 +80,7 @@ def fill_peptide_identification(con,
             FROM Peptide
             INNER JOIN Score_Peptide ON Score_Peptide.peptide_id = Peptide.id
             WHERE SCORE_PEPTIDE.CONTEXT = 'global'
-            AND PEP<:pep_limit""", {'pep_limit': pep_limit})
+            AND PEP<=:pep_limit""", {'pep_limit': pep_limit})
     elif context == 'run-specific':
         c.execute(
             """SELECT Score_Peptide.PEP, Peptide.unmodified_sequence, 
@@ -83,7 +88,7 @@ def fill_peptide_identification(con,
             FROM Peptide
             INNER JOIN Score_Peptide ON Score_Peptide.peptide_id = Peptide.id
             WHERE CONTEXT='run-specific' AND RUN_ID=:run_id
-            AND PEP<:pep_limit""", {'run_id': run_id, 'pep_limit': pep_limit})
+            AND PEP<=:pep_limit""", {'run_id': run_id, 'pep_limit': pep_limit})
 
     linked_protein_dict = get_all_link_for_peptide(con)
 
@@ -95,7 +100,6 @@ def fill_peptide_identification(con,
 
         # Create new peptide identification object and fill basic information
         peptide_identification = PeptideIdentification()
-
 
         peptide_identification.setScoreType("pep")
         peptide_identification.setHigherScoreBetter(False)
@@ -126,7 +130,6 @@ def add_peptide_hit(linked_protein_dict: Dict[str, List[Tuple[str, int]]],
         peptide_hit.setMetaValue("target_decoy", b"decoy")
     else:
         peptide_hit.setMetaValue("target_decoy", b"target")
-
 
     protein_accession_list = []
     # for all protein sqlite id that this peptide sqlite id maps to
@@ -161,7 +164,8 @@ def store_on_disk(out_file_name, protein_id_list, peptide_id_list):
     IdXMLFile().store(out_file_name, protein_id_list, peptide_id_list)
 
 
-def main(input_file: str, out_file: str, context: str, run_id: str, pep_limit: str) -> None:
+def main(input_file: str, out_file: str, context: str, run_id: str,
+         pep_limit: str) -> None:
     run_id = int(run_id)
     pep_limit = int(pep_limit)
 
@@ -193,6 +197,6 @@ def main(input_file: str, out_file: str, context: str, run_id: str, pep_limit: s
 
 if __name__ == "__main__":
     # if len(sys.argv) != 3:
-    # print("""usage: osw_idXML_converter.py <sql file path> out file path""")
-    # input_file, out_file, context, run_id, pep_limit
+    # print("""usage: osw_idXML_converter.py <sql file path> <out file path>""")
+    # input_osw_file, out_idXML_file, context, run_id, pep_limit
     main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])

@@ -75,6 +75,9 @@ def main(epifany_file: str, idpicker_file: str, threshold: str):
     elif score_type == "q-value":
         for accession in protein_hit_scores:
             q_value = min(protein_hit_scores[accession])
+
+            # only if it is less than or equal to the threshold, we reject the null
+            # hypothesis i.e. accept it as inferred protein
             if q_value <= float(threshold):
                 epifany_proteins.append(accession)
     else:
