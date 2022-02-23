@@ -6,7 +6,7 @@ import numpy as np
 import compare_idpicker_epifany_pyprophet
 
 
-def main(epifany_file: str, idpicker_file: str):
+def main(epifany_file: str, idpicker_file: str, pyprophet_file: str):
 
     threshold_list = []
     num_idpicker_protein_list = []
@@ -18,7 +18,7 @@ def main(epifany_file: str, idpicker_file: str):
         print("threshold", threshold)
 
         num_idpicker_protein, num_epifany_protein, num_pyprophet_protein = \
-            compare_idpicker_epifany_pyprophet.main(epifany_file, idpicker_file, str(threshold))
+            compare_idpicker_epifany_pyprophet.main(epifany_file, idpicker_file, pyprophet_file, str(threshold))
 
         threshold_list.append(threshold)
         num_idpicker_protein_list.append(num_idpicker_protein)
@@ -45,4 +45,4 @@ if __name__ == "__main__":
     # main(sys.argv[1], sys.argv[2])
     # epifany output file, idpicker output file
     # pyprophet output file is the same as idpicker
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], sys.argv[3])

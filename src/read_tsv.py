@@ -11,6 +11,15 @@ def main(tsv_filename, osw_filename):
 
 
 def get_all_peptide(tsv_filename):
+    """
+    0 is peptide sequence without modification
+    10 is razor protein (full protein accession?)
+    11 is protein ID (the one matching to osw)
+    -1 is the last column, other mapped protein
+    :param tsv_filename: the file path of the peptide.tsv output
+    from msfragger
+    """
+
     all_peptides = []
 
     with open(tsv_filename) as file:
@@ -23,17 +32,13 @@ def get_all_peptide(tsv_filename):
 
     return all_peptides
 
-# cant i just grab all protein and other protein here and replace the other file's
-# protein accession with these
-# and then it would just be the same
-
-# since the rows in peptide represent a set of edges
+# since the rows in peptide.tsv represent a set of edges
 # that is, a peptide map to a group of proteins
-
 
 # erase protein and mapping table (for only targets)
 # from delete mapping target entries
-# I can do delete from mapping where protein_id in (select protein_id from mapping
+# I can do:
+# delete from mapping where protein_id in (select protein_id from mapping
 # inner join protein on mapping.protein_id = protein.id where protein.decoy = 0)
 
 # for each line I have the peptide sequence and a list of proteins
@@ -51,6 +56,7 @@ def modify_osw(osw_filename, all_peptide):
     c = con.cursor()
 
     # delete target entries from mapping
+    # it check target/decoy based on protein
     c.execute(
         """DELETE FROM PEPTIDE_PROTEIN_MAPPING
         WHERE PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID IN
@@ -62,6 +68,7 @@ def modify_osw(osw_filename, all_peptide):
     print("mapping target entries deleted")
 
     # need to delete entries in score protein too
+    # it check target/decoy based on protein
     c.execute(
         """DELETE FROM SCORE_PROTEIN
         where SCORE_PROTEIN.PROTEIN_ID IN
@@ -70,7 +77,7 @@ def modify_osw(osw_filename, all_peptide):
         WHERE PROTEIN.DECOY = 0)"""
     )
 
-    print("score targer entries deleted")
+    print("score target entries deleted")
 
     # delete target entries from protein
     c.execute(
@@ -79,12 +86,6 @@ def modify_osw(osw_filename, all_peptide):
     )
 
     print("protein target entries deleted")
-
-    # there is a protein id in score protein, that is not in mapping
-
-    # the matching peptide id to thsi protein id, was not scored
-
-    # ok so I really should delete the one in score peptide too
 
     c.execute(
         """SELECT ID
@@ -118,11 +119,12 @@ def modify_osw(osw_filename, all_peptide):
             progress_count += 1
             continue
 
+        # there should be only 1 row that is returned by the
+        # sql query, and there is only 1 column, so we want 0, 0
         pep_id = pep_id_list[0][0]
 
-
-
         # it may used the same pro id as an undeleted decoy protein
+        # so if it does, then change the new protein id
         if progress_count in decoy_protein_id_list:
             pro_id = progress_count + total_proteins
         else:
@@ -165,9 +167,31 @@ def modify_osw(osw_filename, all_peptide):
         progress_count += 1
         print(progress_count, total_proteins)
 
+    # now delete peptide that have no matching proteins
+
+    # so all mapping target entries were deleted,
+    # so does not have mapping
+    # only the ones that were added back has a mapping
+
+    # so peptide with no matching protein should have no mapping
+    c.execute(
+        """DELETE FROM SCORE_PEPTIDE
+        WHERE SCORE_PEPTIDE.PEPTIDE_ID NOT IN
+        (SELECT PEPTIDE.ID FROM PEPTIDE
+        INNER JOIN PEPTIDE_PROTEIN_MAPPING ON PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID = PEPTIDE.ID)"""
+    )
+
+    c.execute(
+        """DELETE FROM PEPTIDE
+        WHERE PEPTIDE.ID NOT IN
+        (SELECT PEPTIDE.ID FROM PEPTIDE
+        INNER JOIN PEPTIDE_PROTEIN_MAPPING ON PEPTIDE_PROTEIN_MAPPING.PEPTIDE_ID = PEPTIDE.ID)"""
+    )
+
     con.commit()
     c.close()
 
 
 if __name__ == "__main__":
+    # tsv, then osw
     main(sys.argv[1], sys.argv[2])

@@ -13,7 +13,27 @@ import sys
 from pyopenms import IdXMLFile
 
 
-def main(epifany_file: str, idpicker_file: str, threshold: str):
+def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
+         threshold: str):
+
+    num_epifany_distinct_protein = get_epifany_result(epifany_file, threshold)
+
+    # num_idpicker_distinct_protein = get_idpicker_result(idpicker_file,
+    #                                                     threshold)
+    #
+    # num_pyprophet_distinct_protein = get_pyprophet_result(pyprophet_file,
+    #                                                       threshold)
+
+    num_idpicker_distinct_protein = 0
+
+    num_pyprophet_distinct_protein = 0
+
+    return num_epifany_distinct_protein,\
+           num_idpicker_distinct_protein,\
+           num_pyprophet_distinct_protein
+
+
+def get_epifany_result(epifany_file: str, threshold: str) -> int:
     # getting all protein from epifany
     prot_ids = []
     pep_ids = []
@@ -49,7 +69,8 @@ def main(epifany_file: str, idpicker_file: str, threshold: str):
                 all_protein_hits.append(accession)
                 epifany_q_values.append(hit.getScore())
                 # epifany_pep.append(1 - hit.getScore())
-                protein_hit_scores.setdefault(accession, []).append(hit.getScore())
+                protein_hit_scores.setdefault(accession, []).append(
+                    hit.getScore())
 
     # _ = plt.hist(epifany_q_values, bins='auto')
     # plt.title("epifany qvalue")
@@ -86,15 +107,16 @@ def main(epifany_file: str, idpicker_file: str, threshold: str):
     epifany_distinct_proteins = set(epifany_proteins)
     print("epifany", len(epifany_distinct_proteins))
 
+    return len(epifany_distinct_proteins)
 
 
-
+def get_idpicker_result(idpicker_file: str, threshold: str) -> int:
     """now for idpicker """
     con = sqlite3.connect(idpicker_file)
 
     c = con.cursor()
 
-    #PEP
+    # PEP
     # c.execute(
     #     """SELECT PROTEIN_GROUP.PROTEIN_GROUP_ID, PROTEIN_GROUP.PROTEIN_ID, SCORE_PROTEIN_GROUP.PEP
     #     FROM PROTEIN_GROUP
@@ -102,12 +124,13 @@ def main(epifany_file: str, idpicker_file: str, threshold: str):
     #     WHERE PROTEIN_GROUP.DECOY = 0 AND PEP <= :threshold""", {'threshold': float(threshold)}
     # )
 
-    #q_value
+    # q_value
     c.execute(
         """SELECT PROTEIN_GROUP.PROTEIN_GROUP_ID, PROTEIN_GROUP.PROTEIN_ID, SCORE_PROTEIN_GROUP.QVALUE, SCORE_PROTEIN_GROUP.PEP
         FROM PROTEIN_GROUP
         INNER JOIN SCORE_PROTEIN_GROUP ON PROTEIN_GROUP.PROTEIN_GROUP_ID = SCORE_PROTEIN_GROUP.PROTEIN_GROUP_ID
-        WHERE PROTEIN_GROUP.DECOY = 0 AND QVALUE <= :threshold""", {'threshold': float(threshold)}
+        WHERE PROTEIN_GROUP.DECOY = 0 AND QVALUE <= :threshold""",
+        {'threshold': float(threshold)}
     )
 
     idpicker_protein = []
@@ -136,25 +159,31 @@ def main(epifany_file: str, idpicker_file: str, threshold: str):
     # plt.ylabel("Number of Proteins")
     # plt.show()
 
-
-
     idpicker_distinct_protein = set(idpicker_protein)
     print("IDpicker", len(idpicker_distinct_protein))
 
-    in_both = idpicker_distinct_protein.intersection(epifany_distinct_proteins)
-
+    # in_both = idpicker_distinct_protein.intersection(epifany_distinct_proteins)
+    #
     # print("in both", len(in_both))
-
-    only_in_epifany = epifany_distinct_proteins.difference(idpicker_distinct_protein)
-    only_in_idpicker = idpicker_distinct_protein.difference(epifany_distinct_proteins)
-
+    #
+    # only_in_epifany = epifany_distinct_proteins.difference(idpicker_distinct_protein)
+    # only_in_idpicker = idpicker_distinct_protein.difference(epifany_distinct_proteins)
+    #
     # print("num only in epifany", len(only_in_epifany))
     # print("num only in idpicker", len(only_in_idpicker))
 
+    return len(idpicker_distinct_protein)
 
 
+def get_pyprophet_result(pyprophet_file: str, threshold: str) -> int:
     # TODO: need to use a different file for pyprophet, because
-    # the new file change is destructive
+    #      the new file change is destructive
+    # also need the file with swissprot instead of uniprot
+
+    con = sqlite3.connect(pyprophet_file)
+
+    c = con.cursor()
+
     c.execute(
         """ 
         SELECT SCORE_PROTEIN.PROTEIN_ID
@@ -176,20 +205,13 @@ def main(epifany_file: str, idpicker_file: str, threshold: str):
     pyprophet_distinct_protein = set(pyprophet_proteins)
     print("pyprophet", len(pyprophet_distinct_protein))
 
-
-    return len(idpicker_distinct_protein), len(epifany_distinct_proteins),\
-           len(pyprophet_distinct_protein)
+    return len(pyprophet_distinct_protein)
 
 
 if __name__ == "__main__":
     # if len(sys.argv) != 3:
     # print("""usage: osw_idXML_converter.py <sql file path> <q-value threshold for peptides>""")
     # main(sys.argv[1], sys.argv[2])
-    # epifany output file, idpicker output file, q-value threshold
+    # epifany output file, idpicker output file, pyprophet file q-value threshold
     # pyprophet output file is the same as the idpicker
-    main(sys.argv[1], sys.argv[2], sys.argv[3])
-
-
-
-
-
+    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
