@@ -24,6 +24,8 @@ if __name__ == "__main__":
     decoy_epifany_q_values = []
     decoy_epifany_pp = []
 
+    all_proteins = []
+
     for protein_id in prot_ids:
 
         score_type = protein_id.getScoreType()
@@ -48,6 +50,10 @@ if __name__ == "__main__":
                     # this would be for pep
                     # decoy_epifany_pp.append(1 - hit.getScore())
 
+            all_proteins.append(hit.getAccession())
+
+    print(len(all_proteins))
+
     # the protein inference gives me negative infinity values
     # change -inf to 1
     # target_epifany_pp_cleaned = [1 if x == float('-inf') else x for x in target_epifany_pp]
@@ -61,8 +67,8 @@ if __name__ == "__main__":
     # thicker than the other one (i.e. the auto for target is not the same as
     # the auto for decoy)
     if score_type == "q-value":
-        _ = plt.hist(decoy_epifany_q_values, bins=100, alpha=0.5, label="decoy")
-        _ = plt.hist(target_epifany_q_values, bins=100, alpha=0.5, label="target")
+        _ = plt.hist(decoy_epifany_q_values, bins=500, alpha=0.5, label="decoy")
+        _ = plt.hist(target_epifany_q_values, bins=500, alpha=0.5, label="target")
         plt.title("epifany qvalue")
         plt.xlabel("Q value")
         plt.ylabel("Number of proteins")

@@ -10,26 +10,21 @@ import collections
 import sqlite3
 import sys
 
-from pyopenms import IdXMLFile
+from pyopenms import IDFilter, IdXMLFile
 
 
 def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
          threshold: str):
-
     num_epifany_distinct_protein = get_epifany_result(epifany_file, threshold)
 
-    # num_idpicker_distinct_protein = get_idpicker_result(idpicker_file,
-    #                                                     threshold)
-    #
-    # num_pyprophet_distinct_protein = get_pyprophet_result(pyprophet_file,
-    #                                                       threshold)
+    num_idpicker_distinct_protein = get_idpicker_result(idpicker_file,
+                                                        threshold)
 
-    num_idpicker_distinct_protein = 0
+    num_pyprophet_distinct_protein = get_pyprophet_result(pyprophet_file,
+                                                          threshold)
 
-    num_pyprophet_distinct_protein = 0
-
-    return num_epifany_distinct_protein,\
-           num_idpicker_distinct_protein,\
+    return num_epifany_distinct_protein, \
+           num_idpicker_distinct_protein, \
            num_pyprophet_distinct_protein
 
 
@@ -43,7 +38,10 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
 
     all_protein_hits = collections.deque()
 
+    all_protein_groups = []
+
     protein_hit_scores = {}
+    protein_group_probability = {}
 
     # there is 1 protein identification
     # ~200000 hits
@@ -51,26 +49,63 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
     # why do some hits have the same protein accession, but different q_value
     # that is because when I convert from OSW i forgot to remove duplciates
 
+    # proteins, should be protein identification list load from idXML
+    # protrun, is then just the a protein identification
+    # I need getIndistinguishableProteins() instead of getIndistinguishableProteinGroups()
+
+    # IDFilter().removeDecoyHits(proteins)
+    # protrun = proteins[0]
+    # grps = protrun.getIndistinguishableProteinGroups()
+    # IDFilter().updateIndistinguishableProteinGroups(grps,
+    #                                                 protrun.getHits())
+    # protrun.setIndistinguishableProteinGroups(grps)
+    # proteins[0] = protrun
+
     score_type = "None"
 
     epifany_q_values = []
-    epifany_pep = []
+
+    # need to check if this filter in place (i.e. mutates, and not return a copy)
+    IDFilter().removeDecoyHits(prot_ids)
+
+    for protein_id in prot_ids:
+        groups = protein_id.getIndistinguishableProteins()
+        hits = protein_id.getHits()
+        IDFilter().updateProteinGroups(groups, hits)
+
+        # in epifany output protein groups is empty anyway
+        # check that
+        assert protein_id.getProteinGroups() == []
+
+        # append only target protein groups into "protein groups"
+        for group in groups:
+            protein_id.insertProteinGroup(group)
 
     for protein_id in prot_ids:
 
-        score_type = protein_id.getScoreType()
+        for group in protein_id.getProteinGroups():
 
-        # print(protein_id.getScoreType())
+            # list of bytes
+            accession_list_bytes = group.accessions
 
-        for hit in protein_id.getHits():
+            accession_list_str = [accession_bytes.decode("utf-8") for
+                                  accession_bytes in accession_list_bytes]
 
-            if hit.getMetaValue("target_decoy") == "target":
-                accession = hit.getAccession()
-                all_protein_hits.append(accession)
-                epifany_q_values.append(hit.getScore())
-                # epifany_pep.append(1 - hit.getScore())
-                protein_hit_scores.setdefault(accession, []).append(
-                    hit.getScore())
+            accessions = ''.join(accession_list_str)
+
+            all_protein_groups.append(accessions)
+            protein_group_probability.setdefault(accessions, []).append(
+                group.probability)
+
+        # for hit in protein_id.getHits():
+        #
+        #     if hit.getMetaValue("target_decoy") == "target":
+        #         accession = hit.getAccession()
+        #         all_protein_hits.append(accession)
+        #         epifany_q_values.append(hit.getScore())
+        #         # epifany_pep.append(1 - hit.getScore())
+        #         protein_hit_scores.setdefault(accession, []).append(
+        #             hit.getScore())
 
     # _ = plt.hist(epifany_q_values, bins='auto')
     # plt.title("epifany qvalue")
@@ -104,10 +139,24 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
     else:
         print("Unrecognized Score Type")
 
-    epifany_distinct_proteins = set(epifany_proteins)
-    print("epifany", len(epifany_distinct_proteins))
+    # epifany_distinct_proteins = set(epifany_proteins)
+    # print("epifany", len(epifany_distinct_proteins))
 
-    return len(epifany_distinct_proteins)
+    # return len(epifany_distinct_proteins)
+
+    """protein groups"""
+    epifany_proteins_groups = []
+
+    for groups in protein_group_probability:
+        probability = min(protein_group_probability[groups])
+
+        if probability <= float(threshold):
+            epifany_proteins_groups.append(groups)
+
+    epifany_distinct_proteins_groups = set(epifany_proteins_groups)
+    print("epifany groups", len(epifany_distinct_proteins_groups))
+
+    return len(epifany_distinct_proteins_groups)
 
 
 def get_idpicker_result(idpicker_file: str, threshold: str) -> int:
@@ -126,26 +175,24 @@ def get_idpicker_result(idpicker_file: str, threshold: str) -> int:
 
     # q_value
     c.execute(
-        """SELECT PROTEIN_GROUP.PROTEIN_GROUP_ID, PROTEIN_GROUP.PROTEIN_ID, SCORE_PROTEIN_GROUP.QVALUE, SCORE_PROTEIN_GROUP.PEP
+        """SELECT DISTINCT PROTEIN_GROUP.PROTEIN_GROUP_ID, SCORE_PROTEIN_GROUP.QVALUE
         FROM PROTEIN_GROUP
         INNER JOIN SCORE_PROTEIN_GROUP ON PROTEIN_GROUP.PROTEIN_GROUP_ID = SCORE_PROTEIN_GROUP.PROTEIN_GROUP_ID
-        WHERE PROTEIN_GROUP.DECOY = 0 AND QVALUE <= :threshold""",
+        WHERE PROTEIN_GROUP.DECOY = 0 AND SCORE_PROTEIN_GROUP.QVALUE <= :threshold""",
         {'threshold': float(threshold)}
     )
 
-    idpicker_protein = []
     idpicker_q_values = []
-    idpicker_pep = []
 
     for row in c.fetchall():
         group_id = row[0]
-        protein_id = row[1]
-        q_value = row[2]
-        pep = row[3]
+        # protein_id = row[1]
+        q_value = row[1]
 
-        idpicker_protein.append(protein_id)
         idpicker_q_values.append(q_value)
-        idpicker_pep.append(pep)
+
+    # TODO maybe I should just use set default to group protein into groups
+    #   and then venn diagram compare that to pyprophet protein
 
     # _ = plt.hist(idpicker_pep, bins='auto')
     # plt.title("Idpicker pep")
@@ -159,8 +206,7 @@ def get_idpicker_result(idpicker_file: str, threshold: str) -> int:
     # plt.ylabel("Number of Proteins")
     # plt.show()
 
-    idpicker_distinct_protein = set(idpicker_protein)
-    print("IDpicker", len(idpicker_distinct_protein))
+    print("IDpicker", len(idpicker_q_values))
 
     # in_both = idpicker_distinct_protein.intersection(epifany_distinct_proteins)
     #
@@ -172,12 +218,10 @@ def get_idpicker_result(idpicker_file: str, threshold: str) -> int:
     # print("num only in epifany", len(only_in_epifany))
     # print("num only in idpicker", len(only_in_idpicker))
 
-    return len(idpicker_distinct_protein)
+    return len(idpicker_q_values)
 
 
 def get_pyprophet_result(pyprophet_file: str, threshold: str) -> int:
-    # TODO: need to use a different file for pyprophet, because
-    #      the new file change is destructive
     # also need the file with swissprot instead of uniprot
 
     con = sqlite3.connect(pyprophet_file)

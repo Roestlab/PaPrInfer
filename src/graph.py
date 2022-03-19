@@ -515,7 +515,7 @@ class Graph:
         # for all node
         for node in self.node_dict:
             # if not deleted
-            if node not in self.node_to_delete:
+            if node.get_first_id() not in self.node_to_delete:
                 # map its first id to the node object itself
                 self.accession_object[node.get_first_id()] = node
 
@@ -564,6 +564,6 @@ class Graph:
         component_node = self.accession_object[start_node.get_first_id()]
 
         if isinstance(component_node, Protein):
-            a_component.add_protein(start_node, neighbour_list)
+            a_component.add_protein(component_node, neighbour_list)
         elif isinstance(component_node, Peptide):
-            a_component.add_peptide(start_node, neighbour_list)
+            a_component.add_peptide(component_node, neighbour_list)

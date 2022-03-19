@@ -192,6 +192,68 @@ def modify_osw(osw_filename, all_peptide):
     c.close()
 
 
+
+
+
+
+# sometimes there are protein in mapping, but not scored or have accession
+# SELECT * PROTEIN_ID
+# FROM PEPTIDE_PROTEIN_MAPPING
+# INNER JOIN PROTEIN ON PROTEIN.ID = PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID
+# WHERE PROTEIN_ID NOT IN
+# (
+# SELECT PROTEIN_ID
+# FROM SCORE_PROTEIN
+# INNER JOIN PROTEIN ON SCORE_PROTEIN.PROTEIN_ID = PROTEIN.ID
+# )
+#
+#
+#
+# DELETE
+# FROM PEPTIDE_PROTEIN_MAPPING
+# WHERE PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID NOT IN
+# (
+# SELECT PROTEIN_ID
+# FROM SCORE_PROTEIN
+# INNER JOIN PROTEIN ON SCORE_PROTEIN.PROTEIN_ID = PROTEIN.ID
+# )
+
+
+
+# sometimes there are also peptides in mapping but not scored or in peptide
+# SELECT PEPTIDE_ID
+# FROM PEPTIDE_PROTEIN_MAPPING
+# INNER JOIN PROTEIN ON PROTEIN.ID = PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID
+# WHERE PEPTIDE_ID NOT IN
+# (
+# SELECT id FROM Peptide
+# INNER JOIN Score_Peptide ON Score_Peptide.peptide_id = Peptide.id
+# )
+#
+#
+# DELETE
+# FROM PEPTIDE_PROTEIN_MAPPING
+# WHERE PEPTIDE_ID NOT IN
+# (
+# SELECT id FROM Peptide
+# INNER JOIN Score_Peptide ON Score_Peptide.peptide_id = Peptide.id
+# )
+
+
+# there are also protein rows not in mapping
+
+# select PROTEIN.PROTEIN_ACCESSION
+# from PROTEIN
+# where PROTEIN.ID not in
+# (
+# select PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID from PEPTIDE_PROTEIN_MAPPING
+# )
+
+
+# but there are not protein that are both in scored-protein and protein
+# but not in mapping
+
+
 if __name__ == "__main__":
     # tsv, then osw
     main(sys.argv[1], sys.argv[2])

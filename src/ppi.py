@@ -148,6 +148,8 @@ def collapse(protein_peptide_graph: Graph) -> None:
 
 def separate(protein_peptide_graph: Graph) -> List[Component]:
     # for all white peptide nodes, explore them
+    protein_peptide_graph.make_accession_object_dict()
+
     component_list = []
 
     for node in protein_peptide_graph.node_dict.keys():
