@@ -36,42 +36,22 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
     IdXMLFile().load(epifany_file, prot_ids,
                      pep_ids)
 
-    all_protein_hits = collections.deque()
-
     all_protein_groups = []
 
-    protein_hit_scores = {}
     protein_group_probability = {}
 
-    # there is 1 protein identification
-    # ~200000 hits
-    # each hit is one protein accession
-    # why do some hits have the same protein accession, but different q_value
-    # that is because when I convert from OSW i forgot to remove duplciates
-
-    # proteins, should be protein identification list load from idXML
-    # protrun, is then just the a protein identification
-    # I need getIndistinguishableProteins() instead of getIndistinguishableProteinGroups()
-
-    # IDFilter().removeDecoyHits(proteins)
-    # protrun = proteins[0]
-    # grps = protrun.getIndistinguishableProteinGroups()
-    # IDFilter().updateIndistinguishableProteinGroups(grps,
-    #                                                 protrun.getHits())
-    # protrun.setIndistinguishableProteinGroups(grps)
-    # proteins[0] = protrun
-
-    score_type = "None"
-
-    epifany_q_values = []
-
-    # need to check if this filter in place (i.e. mutates, and not return a copy)
+    # first remove all the decoy protein hits
     IDFilter().removeDecoyHits(prot_ids)
 
     for protein_id in prot_ids:
+        # then get the protein groups
         groups = protein_id.getIndistinguishableProteins()
+        # then get all the (now) target protein htis
         hits = protein_id.getHits()
+        # based on the target protein hits, remove all decoy protein group
         IDFilter().updateProteinGroups(groups, hits)
+
+        # add the protein group back in
 
         # in epifany output protein groups is empty anyway
         # check that
@@ -81,6 +61,7 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
         for group in groups:
             protein_id.insertProteinGroup(group)
 
+    # read the protein groups
     for protein_id in prot_ids:
 
         for group in protein_id.getProteinGroups():
@@ -97,16 +78,6 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
             protein_group_probability.setdefault(accessions, []).append(
                 group.probability)
 
-        # for hit in protein_id.getHits():
-        #
-        #     if hit.getMetaValue("target_decoy") == "target":
-        #         accession = hit.getAccession()
-        #         all_protein_hits.append(accession)
-        #         epifany_q_values.append(hit.getScore())
-        #         # epifany_pep.append(1 - hit.getScore())
-        #         protein_hit_scores.setdefault(accession, []).append(
-        #             hit.getScore())
-
     # _ = plt.hist(epifany_q_values, bins='auto')
     # plt.title("epifany qvalue")
     # plt.xlabel("Q value")
@@ -118,31 +89,6 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
     # plt.xlabel("Posterior Error Probability")
     # plt.ylabel("Number of proteins")
     # plt.show()
-
-    epifany_proteins = []
-
-    if score_type == "Posterior Probability":
-        for accession in protein_hit_scores:
-            pp = min(protein_hit_scores[accession])
-            pep = 1 - pp
-            if pep <= float(threshold):
-                epifany_proteins.append(accession)
-
-    elif score_type == "q-value":
-        for accession in protein_hit_scores:
-            q_value = min(protein_hit_scores[accession])
-
-            # only if it is less than or equal to the threshold, we reject the null
-            # hypothesis i.e. accept it as inferred protein
-            if q_value <= float(threshold):
-                epifany_proteins.append(accession)
-    else:
-        print("Unrecognized Score Type")
-
-    # epifany_distinct_proteins = set(epifany_proteins)
-    # print("epifany", len(epifany_distinct_proteins))
-
-    # return len(epifany_distinct_proteins)
 
     """protein groups"""
     epifany_proteins_groups = []
