@@ -26,13 +26,14 @@ def main(epifany_file: str, idpicker_file: str, pyprophet_file: str):
         num_pyprophet_protein_list.append(num_pyprophet_protein)
 
     plt.plot(threshold_list, num_idpicker_protein_list, "-o", color='blue', label="Idpicker Protein Groups")
-    plt.plot(threshold_list, num_epifany_protein_list, "-s", color='red', label="Epifany Protein Groups")
+    # plt.plot(threshold_list, num_epifany_protein_list, "-s", color='red', label="Epifany Protein Groups")
     plt.plot(threshold_list, num_pyprophet_protein_list, "-^", color='green', label="Pyprophet Protein (SwissProt)")
-    plt.title("Precision Recall Curve: Swiss-Prot")
-    # plt.title("Precision Recall Curve: swissprot")
+    # plt.title("Precision Recall Curve: Swiss-Prot")
+    plt.title("Precision Recall Curve: UniProt")
     plt.xlabel("FDR threshold")
     plt.ylabel("Number of proteins")
-    plt.legend(loc='lower right')
+    # plt.legend(loc='lower right')
+    plt.legend(loc='center right')
     plt.show()
 
     # maybe add vertical line at 0.05
@@ -62,17 +63,24 @@ def zoomed_in_version(epifany_file: str, idpicker_file: str, pyprophet_file: str
 
     plt.plot(threshold_list, num_idpicker_protein_list, "-o", color='blue',
              label="Idpicker Protein Groups")
-    plt.plot(threshold_list, num_epifany_protein_list, "-s", color='red',
-             label="Epifany Protein Groups")
+    # plt.plot(threshold_list, num_epifany_protein_list, "-s", color='red',
+    #          label="Epifany Protein Groups")
     plt.plot(threshold_list, num_pyprophet_protein_list, "-^", color='green',
              label="Pyprophet Proteins (Swiss-Prot)")
-    plt.title("Precision Recall Curve: Swiss-Prot 0-0.1")
-    # plt.title("Precision Recall Curve: swissprot 0-0.1")
+    # plt.title("Precision Recall Curve: Swiss-Prot 0-0.1")
+    plt.title("Precision Recall Curve: UniProt 0-0.1")
     plt.xlabel("FDR threshold")
     plt.ylabel("Number of proteins")
     plt.legend(loc='lower right')
     plt.show()
 
+
+def venn_diagram(epifany_file: str, idpicker_file: str, pyprophet_file: str):
+
+    num_epifany_protein, num_idpicker_protein, num_pyprophet_protein = \
+        compare_idpicker_epifany_pyprophet.main(epifany_file, idpicker_file,
+                                                pyprophet_file,
+                                                str(0.05))
 
 if __name__ == "__main__":
     # if len(sys.argv) != 3:
@@ -80,5 +88,7 @@ if __name__ == "__main__":
     # main(sys.argv[1], sys.argv[2])
     # epifany output file, idpicker output file
     # pyprophet output file is the same as idpicker
-    #main(sys.argv[1], sys.argv[2], sys.argv[3])
-    zoomed_in_version(sys.argv[1], sys.argv[2], sys.argv[3])
+
+    # main(sys.argv[1], sys.argv[2], sys.argv[3])
+    # zoomed_in_version(sys.argv[1], sys.argv[2], sys.argv[3])
+    venn_diagram(sys.argv[1], sys.argv[2], sys.argv[3])

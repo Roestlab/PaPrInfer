@@ -40,26 +40,7 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
 
     protein_group_probability = {}
 
-    # first remove all the decoy protein hits
-    IDFilter().removeDecoyHits(prot_ids)
-
-    for protein_id in prot_ids:
-        # then get the protein groups
-        groups = protein_id.getIndistinguishableProteins()
-        # then get all the (now) target protein htis
-        hits = protein_id.getHits()
-        # based on the target protein hits, remove all decoy protein group
-        IDFilter().updateProteinGroups(groups, hits)
-
-        # add the protein group back in
-
-        # in epifany output protein groups is empty anyway
-        # check that
-        assert protein_id.getProteinGroups() == []
-
-        # append only target protein groups into "protein groups"
-        for group in groups:
-            protein_id.insertProteinGroup(group)
+    remove_decoy_protein_groups(prot_ids)
 
     # read the protein groups
     for protein_id in prot_ids:
@@ -72,7 +53,7 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
             accession_list_str = [accession_bytes.decode("utf-8") for
                                   accession_bytes in accession_list_bytes]
 
-            accessions = ''.join(accession_list_str)
+            accessions = ' '.join(accession_list_str)
 
             all_protein_groups.append(accessions)
             protein_group_probability.setdefault(accessions, []).append(
@@ -103,6 +84,28 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
     print("epifany groups", len(epifany_distinct_proteins_groups))
 
     return len(epifany_distinct_proteins_groups)
+
+
+def remove_decoy_protein_groups(prot_ids):
+    # first remove all the decoy protein hits
+    IDFilter().removeDecoyHits(prot_ids)
+    for protein_id in prot_ids:
+        # then get the protein groups
+        groups = protein_id.getIndistinguishableProteins()
+        # then get all the (now) target protein htis
+        hits = protein_id.getHits()
+        # based on the target protein hits, remove all decoy protein group
+        IDFilter().updateProteinGroups(groups, hits)
+
+        # add the protein group back in
+
+        # in epifany output protein groups is empty anyway
+        # check that
+        assert protein_id.getProteinGroups() == []
+
+        # append only target protein groups into "protein groups"
+        for group in groups:
+            protein_id.insertProteinGroup(group)
 
 
 def get_idpicker_result(idpicker_file: str, threshold: str) -> int:
