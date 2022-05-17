@@ -56,6 +56,7 @@ class Graph:
         can exist in multiple protein sqlite ids)
         """
         for protein_id, decoy in protein_id_list:
+
             protein_accession_list = protein_accession_dict[protein_id]
             for protein_accession in protein_accession_list:
                 current_protein = Protein([protein_accession], protein_id,

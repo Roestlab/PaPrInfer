@@ -3,11 +3,10 @@ import sys
 import sqlite3
 
 
-def main(tsv_filename, osw_filename):
+def main(msfragger_peptide_file, pqp_file):
+    pro_pep_dict = get_all_peptide(msfragger_peptide_file)
 
-    all_peptide = get_all_peptide(tsv_filename)
-
-    modify_osw(osw_filename, all_peptide)
+    modify_osw(pqp_file, pro_pep_dict)
 
 
 def get_all_peptide(tsv_filename):
@@ -16,21 +15,33 @@ def get_all_peptide(tsv_filename):
     10 is razor protein (full protein accession?)
     11 is protein ID (the one matching to osw)
     -1 is the last column, other mapped protein
+
+    if there is no other mapped protein, then line 10 is all we need
+    We dont need line 11 since we are not matching it to osw file
+
     :param tsv_filename: the file path of the peptide.tsv output
     from msfragger
     """
 
-    all_peptides = []
+    pro_pep_dict = {}
 
     with open(tsv_filename) as file:
         tsv_file = csv.reader(file, delimiter="\t")
         for line in tsv_file:
-            if line[-1] == "":
-                all_peptides.append([line[0], line[11], line[10]])
-            else:
-                all_peptides.append([line[0], line[11], line[10] + ',' + line[-1]])
+            unmod_pep_seq = line[0]
+            other_mapped_protein = line[-1]
 
-    return all_peptides
+            if other_mapped_protein == "":
+                all_mapped_protein = line[10]
+            else:
+                all_mapped_protein = line[10] + ',' + line[-1]
+
+            # if key was not in the dict, setdefault return the default value,
+            # empty list here. if it was then it returns the value
+            pro_pep_dict.setdefault(all_mapped_protein, []).append(unmod_pep_seq)
+
+    return pro_pep_dict
+
 
 # since the rows in peptide.tsv represent a set of edges
 # that is, a peptide map to a group of proteins
@@ -51,7 +62,24 @@ def get_all_peptide(tsv_filename):
 # and now score protein do not match with protein
 
 
-def modify_osw(osw_filename, all_peptide):
+def get_mapping(c):
+    peptide_seq_id_dict = {}
+
+    c.execute(
+        """SELECT PEPTIDE.UNMODIFIED_SEQUENCE, PEPTIDE.ID
+        FROM PEPTIDE
+        WHERE PEPTIDE.DECOY = 0
+        """)
+
+    for row in c.fetchall():
+        peptide_unmod_seq = row[0]
+        peptide_id = row[1]
+        peptide_seq_id_dict[peptide_unmod_seq] = peptide_id
+
+    return peptide_seq_id_dict
+
+
+def modify_osw(osw_filename, pro_pep_dict):
     con = sqlite3.connect(osw_filename)
     c = con.cursor()
 
@@ -96,33 +124,15 @@ def modify_osw(osw_filename, all_peptide):
     for row in c.fetchall():
         decoy_protein_id_list.append(row[0])
 
+
+    peptide_seq_id_dict = get_mapping(c)
+
     # for all rows in tsv
     progress_count = 1
-    total_proteins = len(all_peptide)
-    for protein in all_peptide:
-        pep_seq = protein[0]
-        accession = protein[1]
-        all_mapped_protein = protein[2]
+    total_proteins = len(pro_pep_dict)
+    for all_mapped_protein, pep_seq_list in pro_pep_dict.items():
 
-        # find the matching peptide id based on peptide sequence
-        c.execute(
-            """SELECT PEPTIDE.ID 
-            FROM PEPTIDE
-            WHERE PEPTIDE.UNMODIFIED_SEQUENCE=:pep_seq
-            AND PEPTIDE.DECOY = 0""", {'pep_seq': pep_seq}
-        )
-        pep_id_list = c.fetchall()
-        # TODO: tsv gives unmodified sequence, but the osw there is entries
-        #   where unmodified sequence is the same, but the modified is not
-        if len(pep_id_list) == 0:
-            print(progress_count, total_proteins, "sequence not in osw")
-            progress_count += 1
-            continue
-
-        # there should be only 1 row that is returned by the
-        # sql query, and there is only 1 column, so we want 0, 0
-        pep_id = pep_id_list[0][0]
-
+        # generate an id for the protein
         # it may used the same pro id as an undeleted decoy protein
         # so if it does, then change the new protein id
         if progress_count in decoy_protein_id_list:
@@ -136,14 +146,8 @@ def modify_osw(osw_filename, all_peptide):
         c.execute(
             """INSERT INTO PROTEIN(ID, PROTEIN_ACCESSION, DECOY) 
             VALUES(:id, :protein_accession, :decoy)""",
-            {'id': pro_id, 'protein_accession': all_mapped_protein, 'decoy': decoy}
-        )
-
-        # create entry in mapping
-        c.execute(
-            """INSERT INTO PEPTIDE_PROTEIN_MAPPING(PEPTIDE_ID, PROTEIN_ID) 
-            VALUES(:peptide_id, :protein_id)""",
-            {'peptide_id': pep_id, 'protein_id': pro_id}
+            {'id': pro_id, 'protein_accession': all_mapped_protein,
+             'decoy': decoy}
         )
 
         # then add in score protein
@@ -163,6 +167,26 @@ def modify_osw(osw_filename, all_peptide):
             {'context': context, 'run_id': run_id, "protein_id": pro_id,
              'score': score, 'pvalue': pvalue, 'qvalue': qvalue, 'pep': pep}
         )
+
+        for pep_seq in pep_seq_list:
+
+            # use pep seq to find peptide id
+            if pep_seq in peptide_seq_id_dict:
+                pep_id = peptide_seq_id_dict[pep_seq]
+            else:
+                print("sequence not in osw", pep_seq)
+                continue
+
+            # TODO: tsv gives unmodified sequence, but the osw there is entries
+            #   where unmodified sequence is the same, but the modified is not
+
+            # create entry in mapping
+            c.execute(
+                """INSERT INTO PEPTIDE_PROTEIN_MAPPING(PEPTIDE_ID, PROTEIN_ID) 
+                VALUES(:peptide_id, :protein_id)""",
+                {'peptide_id': pep_id, 'protein_id': pro_id}
+            )
+
 
         progress_count += 1
         print(progress_count, total_proteins)
@@ -192,10 +216,6 @@ def modify_osw(osw_filename, all_peptide):
     c.close()
 
 
-
-
-
-
 # sometimes there are protein in mapping, but not scored or have accession
 # SELECT * PROTEIN_ID
 # FROM PEPTIDE_PROTEIN_MAPPING
@@ -217,7 +237,6 @@ def modify_osw(osw_filename, all_peptide):
 # FROM SCORE_PROTEIN
 # INNER JOIN PROTEIN ON SCORE_PROTEIN.PROTEIN_ID = PROTEIN.ID
 # )
-
 
 
 # sometimes there are also peptides in mapping but not scored or in peptide
