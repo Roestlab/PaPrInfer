@@ -4,8 +4,9 @@ import pandas as pd
 import sqlite3
 import numpy as np
 
-from shutil import copyfile
 from pyprophet.report import save_report
+
+from shutil import copyfile
 from pyprophet.stats import error_statistics, final_err_table, \
     lookup_values_from_error_table, summary_err_table
 

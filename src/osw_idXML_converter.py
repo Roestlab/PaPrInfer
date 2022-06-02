@@ -148,10 +148,14 @@ def add_peptide_hit(linked_protein_dict: Dict[str, List[Tuple[str, int]]],
         peptide_hit.setMetaValue("target_decoy", b"target")
 
     protein_accession_list = []
-    # for all protein sqlite id that this peptide sqlite id maps to
-    for pro_id, decoy in linked_protein_dict[pep_id]:
-        # we combine the list of accession each protein sqlite id maps to
-        protein_accession_list.extend(protein_accession_dict[pro_id])
+
+
+    # if not in, then it means the peptides does not map to any protein
+    if pep_id in linked_protein_dict:
+        # for all protein sqlite id that this peptide sqlite id maps to
+        for pro_id, decoy in linked_protein_dict[pep_id]:
+            # we combine the list of accession each protein sqlite id maps to
+            protein_accession_list.extend(protein_accession_dict[pro_id])
 
 
     # strip whitespace

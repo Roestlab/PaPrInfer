@@ -26,7 +26,16 @@ def main(pqp_file: str) -> None:
 
 def delete_old_decoys(c) -> None:
 
-    # first delete all score protein entries that are decoy proteins
+    # first delete the mapping, from decoy peptide to decoy proteins
+    c.execute(
+        """DELETE FROM PEPTIDE_PROTEIN_MAPPING
+        WHERE PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID IN
+        (SELECT PROTEIN_ID FROM PEPTIDE_PROTEIN_MAPPING 
+        INNER JOIN PROTEIN ON PEPTIDE_PROTEIN_MAPPING.PROTEIN_ID = PROTEIN.ID
+        WHERE PROTEIN.DECOY = 1)"""
+    )
+
+    # second delete all score protein entries that are decoy proteins
     c.execute(
         """DELETE FROM SCORE_PROTEIN
         WHERE SCORE_PROTEIN.PROTEIN_ID IN
@@ -35,7 +44,7 @@ def delete_old_decoys(c) -> None:
         WHERE PROTEIN.DECOY = 1)"""
     )
 
-    # second delete all decoy proteins
+    # finally delete all decoy proteins
     c.execute(
         """DELETE FROM PROTEIN
         WHERE PROTEIN.DECOY = 1"""
@@ -43,7 +52,7 @@ def delete_old_decoys(c) -> None:
 
 
 def get_mapping(c) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
-    # get a dictionary that maps peptide unmod sequence to peptide id
+    # get a dictionary that maps decoy peptide unmod sequence to decoy peptide id
     # this is 1 to 1
     peptide_seq_id_dict = {}
 
@@ -58,7 +67,7 @@ def get_mapping(c) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
         peptide_id = row[1]
         peptide_seq_id_dict[peptide_seq] = peptide_id
 
-    # read all target proteins map to its peptides, as a dictionary
+    # read all target proteins map to its target peptides, as a dictionary
     # this is 1 to n
     protein_accession_peptide_seq_dict = {}
 
@@ -143,28 +152,30 @@ def add_decoy_protein_peptide(c, peptide_seq_id_dict, protein_accession_peptide_
     # I think we can make decoy peptides without them for now
 
 
-    pass
-
-
 def pseudo_reverse(c, peptide_seq_id_dict, peptide_sequence, protein_id):
+
+    # we start with the target seq
 
     # ignore the last letter, reverse the rest, convert k/r to r/k
 
-    # with the pseudo reserve sequence
+    # with the pseudo reserve sequence (so now we get the decoy seq)
     # first check if it is in the dictionary of sequence to id
-    # get its peptide id
+    # using the decoy seq, get its peptide id (a decoy peptide)
     # write mapping entires
 
     last_aa = peptide_sequence[len(peptide_sequence) - 1]
     except_last = peptide_sequence[0:-1]
     reversed_except_last = except_last[::-1]
+
     if last_aa == 'K':
         pseudo_reverse_seq = reversed_except_last + 'R'
     elif last_aa == 'R':
         pseudo_reverse_seq = reversed_except_last + 'K'
     else:
-        print("Not sure if this is right")
-        pseudo_reverse_seq = reversed_except_last
+        print("this peptide does not have K or R")
+        pseudo_reverse_seq = peptide_sequence[::-1]
+
+    # the pseudo reverse seq is actually the decoy seq
     if pseudo_reverse_seq in peptide_seq_id_dict:
         decoy_peptide_id = peptide_seq_id_dict[pseudo_reverse_seq]
 
