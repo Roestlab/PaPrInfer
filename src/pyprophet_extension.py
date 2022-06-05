@@ -11,8 +11,10 @@ from pyprophet.stats import error_statistics, final_err_table, \
     lookup_values_from_error_table, summary_err_table
 
 
-def statistics_report(data, outfile, context, analyte, parametric, pfdr, pi0_lambda, pi0_method, pi0_smooth_df, pi0_smooth_log_pi0, lfdr_truncate, lfdr_monotone, lfdr_transformation, lfdr_adj, lfdr_eps):
-
+def statistics_report(data, outfile, context, analyte, parametric, pfdr,
+                      pi0_lambda, pi0_method, pi0_smooth_df, pi0_smooth_log_pi0,
+                      lfdr_truncate, lfdr_monotone, lfdr_transformation,
+                      lfdr_adj, lfdr_eps):
     error_stat, pi0 = error_statistics(data[data.decoy == 0]['score'],
                                        data[data.decoy == 1]['score'],
                                        parametric, pfdr, pi0_lambda, pi0_method,
@@ -38,17 +40,18 @@ def statistics_report(data, outfile, context, analyte, parametric, pfdr, pi0_lam
     # export PDF report
     save_report(outfile + "_" + context + "_" + analyte + ".pdf", outfile + ": "
                 + context + " " + analyte + "-level error-rate control",
-                data[data.decoy==1]["score"], data[data.decoy==0]["score"],
+                data[data.decoy == 1]["score"], data[data.decoy == 0]["score"],
                 stat_table["cutoff"], stat_table["svalue"],
-                stat_table["qvalue"], data[data.decoy==0]["p_value"], pi0)
+                stat_table["qvalue"], data[data.decoy == 0]["p_value"], pi0)
 
     return data
 
 
 def infer_protein_groups(infile, outfile, context, parametric, pfdr, pi0_lambda,
-                   pi0_method, pi0_smooth_df, pi0_smooth_log_pi0, lfdr_truncate,
-                   lfdr_monotone, lfdr_transformation, lfdr_adj, lfdr_eps):
-
+                         pi0_method, pi0_smooth_df, pi0_smooth_log_pi0,
+                         lfdr_truncate,
+                         lfdr_monotone, lfdr_transformation, lfdr_adj,
+                         lfdr_eps):
     con = sqlite3.connect(infile)
 
     data = pd.read_sql_query('''
@@ -67,7 +70,8 @@ def infer_protein_groups(infile, outfile, context, parametric, pfdr, pi0_lambda,
     # 'global','experiment-wide','run-specific'
     # also
 
-    data = statistics_report(data, outfile, context, "protein group", parametric,
+    data = statistics_report(data, outfile, context, "protein group",
+                             parametric,
                              pfdr, pi0_lambda, pi0_method, pi0_smooth_df,
                              pi0_smooth_log_pi0, lfdr_truncate,
                              lfdr_monotone, lfdr_transformation, lfdr_adj,
@@ -100,7 +104,8 @@ def infer_protein_groups(infile, outfile, context, parametric, pfdr, pi0_lambda,
 
 if __name__ == "__main__":
     # sys.argv 1 is just the file name, this function takes the infile name and
-    # outfile name, but i set it as the same one anyway
+    # outfile name, but I set it as the same one anyway
     infer_protein_groups(sys.argv[1], sys.argv[1], 'run-specific', False,
-                         False, np.arange(0.05,1.0,0.05), 'bootstrap', 3, False, True,
+                         False, np.arange(0.05, 1.0, 0.05), 'bootstrap', 3,
+                         False, True,
                          True, 'probit', 1.5, np.power(10.0, -8))

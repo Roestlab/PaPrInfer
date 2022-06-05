@@ -11,5 +11,5 @@ Zhang, B., Chambers, M. C., & Tabb, D. L. (2007). Proteomic parsimony through bi
 
 4. visualization package used seems to be not powerful 
 enough to plot a bipartite graph with 43079 
-proteins and 86941 peptide (pre-collpase) or 9321
+proteins and 86941 peptide (pre-collapse) or 9321
 proteins with at least the same amount of peptides

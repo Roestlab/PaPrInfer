@@ -1,7 +1,6 @@
 import bisect
 import itertools
-import sys
-from typing import Dict, List, Tuple, Any
+from typing import Dict, List, Tuple
 
 from components import Component
 from node import Node, Protein, Peptide
@@ -103,7 +102,7 @@ class Graph:
         iterate through the peptide keys, and for each, get their link (most
         times there is only one link), for each link, get all the accessions.
         for each accession, make a protein object, check if is a protein key,
-        then add it to this peptide keys's value
+        then add it to this peptide keys' value
         """
         for node in self.node_dict:
             if isinstance(node, Peptide):
@@ -124,8 +123,8 @@ class Graph:
     def node_in_graph(self, a_node: Node):
         """
         check if this node is in the graph
-        :param a_node: this node to be check
-        :return: whether or not the node is in the graph (boolean)
+        :param a_node: this node to be checked
+        :return: whether the node is in the graph (boolean)
         """
         if self.get_node_dict().get(a_node) is None:
             in_graph = False
@@ -316,7 +315,6 @@ class Graph:
             -> None:
         """
         terminology assumes we are trying to merge peptides
-        :param protein_removed:
         :param peptide_protein_dict:
         :param all_peptides is all the peptides that have the same number
         of protein that they map to
@@ -334,9 +332,9 @@ class Graph:
                            peptide_protein_dict: Dict[Node, List[Node]]):
         """terminology assume we are merging peptides
         first build a dict based on the peptides given, but without the
-        protein that is for sure these peptide have in common
+        protein that is these peptides have in common for sure
 
-        second check how many protein do each peptides have left
+        second check how many protein do each of the peptides have left
         this should all be the same number since the initial peptide inputted
         map to the same number of protein
 
@@ -357,7 +355,7 @@ class Graph:
             num_protein.append(len(protein))
 
         # the length of the set is the number of unique element in num_protein (
-        # i.e. how many different number of proteins do these some_peptides have
+        # i.e. how many number of proteins do these some_peptides have
         # which should be 1, meaning that they all have the same number
         assert len(set(num_protein)) < 2
 
@@ -369,7 +367,7 @@ class Graph:
 
         # base case (we have gotten to final protein)
         # if there are no other protein that it map to, then this means
-        # these peptide only map to this set
+        # this peptide only map to this set
         if num_protein_all == 0:
 
             some_peptides.sort()
@@ -431,7 +429,7 @@ class Graph:
         for neighbour_list in neighbours_reorganized:
             for neighbour_pair in itertools.combinations(neighbour_list, 2):
                 if (
-                        # only if the 2 both neighbour have not been delete yet
+                        # only if the 2 both neighbour have not been deleted yet
                         neighbour_pair[
                             0].get_first_id() not in self.node_to_delete
                         and
@@ -474,8 +472,8 @@ class Graph:
 
         assert len(these_neighbours) == len(those_neighbours)
 
-        # I dont know if python ordered list comparison for equality has
-        # early stop, such that when it reaches an index that is different
+        # I don't know if python ordered list comparison for equality has
+        # early-stop, such that when it reaches an index that is different
         # it exits the equality comparison
 
         is_the_same = True
@@ -556,7 +554,7 @@ class Graph:
 
         self.set_explored(start_node)
 
-        # after the nodes are blacken,
+        # after the nodes are blackened,
         # add the protein or peptide into the a_component
         # with its neighbours
         # but get the object that is key, instead of the value

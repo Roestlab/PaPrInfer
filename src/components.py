@@ -39,7 +39,7 @@ class Component:
             # find unselected protein with the most edges to uncovered peptide
             currently_selected_protein = self.find_most_uncovered_protein()
 
-            # this should not happen, but sometimes it return none
+            # this should not happen, but sometimes it returns none
             if currently_selected_protein is None:
                 break
 

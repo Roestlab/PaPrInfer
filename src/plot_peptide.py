@@ -1,5 +1,7 @@
 
-import sqlite3, sys
+import sqlite3
+import sys
+
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":

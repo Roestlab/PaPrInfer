@@ -25,7 +25,6 @@ def main(pqp_file: str) -> None:
 
 
 def delete_old_decoys(c) -> None:
-
     # first delete the mapping, from decoy peptide to decoy proteins
     c.execute(
         """DELETE FROM PEPTIDE_PROTEIN_MAPPING
@@ -82,14 +81,14 @@ def get_mapping(c) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
     for row in c.fetchall():
         protein_accession = row[0]
         peptide_seq = row[1]
-        protein_accession_peptide_seq_dict.setdefault(protein_accession, []).append(peptide_seq)
+        protein_accession_peptide_seq_dict.setdefault(protein_accession,
+                                                      []).append(peptide_seq)
 
     return peptide_seq_id_dict, protein_accession_peptide_seq_dict
 
 
-
-def add_decoy_protein_peptide(c, peptide_seq_id_dict, protein_accession_peptide_seq_dict):
-
+def add_decoy_protein_peptide(c, peptide_seq_id_dict,
+                              protein_accession_peptide_seq_dict):
     # for loop over the dictionary
     # based on the dictionary keys, insert all decoy protein entries
     # I just need protein accession (just use decoy + target protein accession)
@@ -107,13 +106,14 @@ def add_decoy_protein_peptide(c, peptide_seq_id_dict, protein_accession_peptide_
     for protein_accession, peptide_sequence_list in protein_accession_peptide_seq_dict.items():
 
         protein_id = max_id + current_id
-        decoy_protein_accession = 'DECOY ' + protein_accession
+        decoy_protein_accession = prepend_decoy(protein_accession)
         decoy = 1
 
         c.execute(
             """INSERT INTO PROTEIN(ID, PROTEIN_ACCESSION, DECOY) 
             VALUES(:id, :protein_accession, :decoy)""",
-            {'id': protein_id, 'protein_accession': decoy_protein_accession, 'decoy': decoy}
+            {'id': protein_id, 'protein_accession': decoy_protein_accession,
+             'decoy': decoy}
         )
 
         # then add in score protein
@@ -142,9 +142,9 @@ def add_decoy_protein_peptide(c, peptide_seq_id_dict, protein_accession_peptide_
         current_id += 1
 
         # Also, I think I remove the issue of multiple peptide entries have
-        # thew same seqeucen but different id
+        # thew same sequence but different id
 
-    # I dont understand the notation of unimod
+    # I don't understand the notation of unimod,
     # but I think that if we have M(UniMod:35)S
     # the modification is on M
     # and pseudo reverse does not change which amino acid the modification
@@ -152,8 +152,29 @@ def add_decoy_protein_peptide(c, peptide_seq_id_dict, protein_accession_peptide_
     # I think we can make decoy peptides without them for now
 
 
-def pseudo_reverse(c, peptide_seq_id_dict, peptide_sequence, protein_id):
+def prepend_decoy(protein_accession: str) -> str:
+    # protein accession = 'PROTEIN_1, PRO2, PRO3'
 
+    # ['PROTEIN_1', ' PRO2', ' PRO3']
+    protein_accession_list = protein_accession.split(",")
+
+    # ['PROTEIN_1', 'PRO2', 'PRO3']
+    stripped_protein_accession_list \
+        = [s.strip() for s in protein_accession_list]
+
+    properly_formatted_protein_accession_list = []
+    for protein_accession in stripped_protein_accession_list:
+        properly_formatted_protein_accession_list.append('DECOY')
+        properly_formatted_protein_accession_list.append(' ')
+        properly_formatted_protein_accession_list.append(protein_accession)
+        properly_formatted_protein_accession_list.append(',')
+        properly_formatted_protein_accession_list.append(' ')
+
+    # do not want final , and single whitespace
+    return ''.join(properly_formatted_protein_accession_list[0:-2])
+
+
+def pseudo_reverse(c, peptide_seq_id_dict, peptide_sequence, protein_id):
     # we start with the target seq
 
     # ignore the last letter, reverse the rest, convert k/r to r/k
@@ -161,7 +182,7 @@ def pseudo_reverse(c, peptide_seq_id_dict, peptide_sequence, protein_id):
     # with the pseudo reserve sequence (so now we get the decoy seq)
     # first check if it is in the dictionary of sequence to id
     # using the decoy seq, get its peptide id (a decoy peptide)
-    # write mapping entires
+    # write mapping entries
 
     last_aa = peptide_sequence[len(peptide_sequence) - 1]
     except_last = peptide_sequence[0:-1]

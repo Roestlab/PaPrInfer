@@ -1,16 +1,9 @@
-# #!/usr/bin/env python3
-# # -*- coding: utf-8 -*-
-# """
-# Created on Thu Feb 11 12:00:41 2021
-#
-# @author: kren
-# """
-
 
 import sqlite3
 import sys
 from typing import Dict, List, Tuple
 
+# noinspection PyUnresolvedReferences
 from pyopenms import AASequence, IdXMLFile, PeptideEvidence, PeptideHit, \
     PeptideIdentification, ProteinHit, ProteinIdentification
 
@@ -36,7 +29,7 @@ def fill_protein_identification(con, protein_identification,
 
     for protein_id, decoy in protein_id_list:
         list_of_protein_accession = protein_accession_dict[protein_id]
-        if decoy == 0:  # if not decoy, is target
+        if decoy == 0:  # if not decoy, is targeted
             target_protein_accession_list.extend(list_of_protein_accession)
         elif decoy == 1:  # is decoy
             decoy_protein_accession_list.extend(list_of_protein_accession)
@@ -51,7 +44,7 @@ def fill_protein_identification(con, protein_identification,
     stripped_target_protein_accession_list = list(set(stripped_target_protein_accession_list))
     stripped_decoy_protein_accession_list = list(set(stripped_decoy_protein_accession_list))
 
-    # last parameter ask whether or not it is a decoy
+    # last parameter ask whether it is a decoy
     make_protein_hit(target_protein_hit_list,
                      stripped_target_protein_accession_list,
                      False)

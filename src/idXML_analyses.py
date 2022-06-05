@@ -2,7 +2,6 @@
 import sys
 import matplotlib.pyplot as plt
 from pyopenms import IdXMLFile
-import collections
 
 
 """trying to find number of peptides per protein distribution either

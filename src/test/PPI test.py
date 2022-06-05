@@ -16,6 +16,7 @@ from src import ppi
 #
 
 
+# noinspection PyArgumentList
 class TestCollapse(unittest.TestCase):
     """this class contains test for method used in collapse
     """
@@ -171,8 +172,9 @@ class TestCollapse(unittest.TestCase):
         #  the delete node, it does not work
 
 
+# noinspection PyArgumentList,PyUnresolvedReferences
 class TestSeparate(unittest.TestCase):
-    """this class contains test for method used in Seperate
+    """this class contains test for method used in Separate
     """
 
     def setUp(self) -> None:
@@ -267,6 +269,7 @@ class TestSeparate(unittest.TestCase):
         # self.assertIn(component_1 in compo)
 
 
+# noinspection PyArgumentList,PyUnresolvedReferences
 class TestPPI(unittest.TestCase):
 
     def test_reduce(self):

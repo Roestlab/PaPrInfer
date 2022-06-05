@@ -8,7 +8,6 @@ import sys
 from graph import Graph
 from components import Component
 from node import Peptide, Protein
-from collections import Counter
 
 """main"""
 
@@ -233,6 +232,7 @@ def reduce(component_list: List[Component], con) -> None:
     create_table_protein_group_peptide_mapping(con)
     protein_group_data_entry(con, min_pro_list)
 
+
     print("reduced")
 
 
@@ -246,7 +246,7 @@ def begin_connection(db_name: str):
 
 def get_all_protein_id(con, context: str, run_id: int) -> List[Tuple[str, int]]:
     """
-    choose all protein from the a context
+    choose all protein from the context
     :param run_id: the run id if the context is 'run-specific'
     :param context: the context, either global or 'run-specific'
     :param con: the connection to the sqlite database
@@ -303,7 +303,7 @@ def get_all_peptide(con, q_limit: int, context: str, run_id: int) \
     c.close()
     return all_peptide_id_list
 
-    # if i ever want to select only peptide or protein that fit a certain
+    # if I ever want to select only peptide or protein that fit a certain
     #  properties, use c.execute("SELECT * WHERE value=3 AND keyword=1")
     #  something like that, note this data is in SCORE_PROTEIN or SCORE_PEPTIDE
 
@@ -422,7 +422,7 @@ def create_table_protein_group_peptide_mapping(con) -> None:
 
 
 def protein_group_data_entry(con, min_pro_list: List[List[Tuple[
-        List[str], float, int, List[str]]]]) -> None:
+        List[str], float, str, Any]]]) -> None:
     c = con.cursor()
     component_id = 0
     protein_group_id = 0
@@ -465,6 +465,6 @@ if __name__ == "__main__":
               <q-value threshold for peptides> <context> <run id>""")
     # input_file path, q_limit_pep, context, run_id
     # if context is global, run_id can be anything
-    # dont run global on 20180911_TIMS2_12-2_AnBr_SA_diaPASEF_Test10_42eV_1_A1_01_2927_test_lib_overridegroupid.osw
+    # don't run global on 20180911_TIMS2_12-2_AnBr_SA_diaPASEF_Test10_42eV_1_A1_01_2927_test_lib_overridegroupid.osw
     # it does not have it
     main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])

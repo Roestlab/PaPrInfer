@@ -116,6 +116,7 @@ def venn_diagram(epifany_file: str, idpicker_file: str, pyprophet_file: str):
                                                 pyprophet_file,
                                                 str(0.05))
 
+
 if __name__ == "__main__":
     # if len(sys.argv) != 3:
     # print("""usage: osw_idXML_converter.py <sql file path> <q-value threshold for peptides>""")
@@ -124,6 +125,6 @@ if __name__ == "__main__":
     # pyprophet output file is the same as idpicker
 
     # main(sys.argv[1], sys.argv[2], sys.argv[3])
-    # zoomed_in_version(sys.argv[1], sys.argv[2], sys.argv[3])
+    zoomed_in_version(sys.argv[1], sys.argv[2], sys.argv[3])
     # venn_diagram(sys.argv[1], sys.argv[2], sys.argv[3])
     even_more_zoomed_in_version(sys.argv[1], sys.argv[2], sys.argv[3])

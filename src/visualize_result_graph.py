@@ -11,7 +11,7 @@ import sqlite3
 
 
 def get_graph_epifany(epifany_file) -> Tuple[
-    Dict[str, List[Any]], Dict[Any, Any]]:
+        Dict[str, List[Any]], Dict[Any, Any]]:
     prot_ids = []
     pep_ids = []
 
@@ -222,7 +222,6 @@ def search_in_protein(a_node, component_protein_list, component_peptide_list,
         neighbour_list = peptide_protein_dict[a_node]
         component_peptide_list.append(a_node)
 
-
     # there are 1000 epifany proteins that has no peptides
     # is that right?
     if len(neighbour_list) == 0:
@@ -261,7 +260,8 @@ if __name__ == "__main__":
         sys.argv[1])
     idpicker_protein_peptide_dict, idpicker_peptide_protein_dict = get_graph_idpicker(
         sys.argv[2])
-    write_into_text_file(epifany_protein_peptide_dict, idpicker_protein_peptide_dict)
+    write_into_text_file(epifany_protein_peptide_dict,
+                         idpicker_protein_peptide_dict)
 
     # num_epifany_protein_per_component_list, num_idpicker_protein_per_component_list = \
     #     count_proteins_both(epifany_protein_peptide_dict,
@@ -270,5 +270,3 @@ if __name__ == "__main__":
 
     # analyse_comparison(num_epifany_protein_per_component_list,
     #                    num_idpicker_protein_per_component_list)
-
-

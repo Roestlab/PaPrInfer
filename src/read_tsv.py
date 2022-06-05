@@ -17,9 +17,9 @@ def get_all_peptide(tsv_filename):
     -1 is the last column, other mapped protein
 
     if there is no other mapped protein, then line 10 is all we need
-    We dont need line 11 since we are not matching it to osw file
+    We don't need 'line 11' since we are not matching it to osw file
 
-    :param tsv_filename: the file path of the peptide.tsv output
+    param tsv_filename: the file path of the peptide.tsv output
     from msfragger
     """
 
@@ -58,7 +58,7 @@ def get_all_peptide(tsv_filename):
 # add this to the protein and mapping table
 # (for protein, just the new id, the list of protein, and decoy as 0)
 # (for mapping just matching peptide id, and this new id
-# only problem, I wont be able to output pyprophet proteins'a accession
+# only problem, I won't be able to output pyprophet proteins' accession
 # and now score protein do not match with protein
 
 
@@ -96,7 +96,7 @@ def modify_osw(osw_filename, pro_pep_dict):
     print("mapping target entries deleted")
 
     # need to delete entries in score protein too
-    # it check target/decoy based on protein
+    # it checks target/decoy based on protein
     c.execute(
         """DELETE FROM SCORE_PROTEIN
         where SCORE_PROTEIN.PROTEIN_ID IN
@@ -133,7 +133,7 @@ def modify_osw(osw_filename, pro_pep_dict):
     for all_mapped_protein, pep_seq_list in pro_pep_dict.items():
 
         # generate an id for the protein
-        # it may used the same pro id as an undeleted decoy protein
+        # it may use the same pro id as an undeleted decoy protein
         # so if it does, then change the new protein id
         if progress_count in decoy_protein_id_list:
             pro_id = progress_count + total_proteins
@@ -269,7 +269,7 @@ def modify_osw(osw_filename, pro_pep_dict):
 # )
 
 
-# but there are not protein that are both in scored-protein and protein
+# but there are no protein that are both in scored-protein and protein
 # but not in mapping
 
 

@@ -136,7 +136,7 @@ class Protein(Node):
         self._score = score
 
     def add_score(self, other_score: float):
-        """because protein group's score depends on the peptide it claims
+        """because protein group's score depends on the peptide it claims,
         so it is not changed during the merging of proteins """
         pass
 

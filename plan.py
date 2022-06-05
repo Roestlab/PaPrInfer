@@ -16,7 +16,7 @@
 # check if they are indeed peptide keys, then add them into the values
 
 # just like before go through the peptide keys and find all corresponding protein id
-# but now for each, protein id, i need to parse the string into a list of substrings
+# but now for each, protein id, I need to parse the string into a list of substrings
 
 
 
@@ -34,7 +34,7 @@
             # 2 = black = discovered + explored
             # initially, should be white
         # same
-        # component_number: the connected a_component that this node belong to.
+        # component_number: the connected a_component that this node belongs to.
             # Before doing step 3 (and after the node is created) this attribute
             # does not mean anything
 
@@ -48,7 +48,7 @@
 # class protein extends nodes
     # === attributes ===
         # selected(a)
-            # this is for step 4: reduce: it says whether or not the protein
+            # this is for step 4: reduce: it says whether the protein
             # in question has been selected for the minimal protein list)
         # accession number
     # === methods ===
@@ -61,7 +61,7 @@
             # check if they are equal
             # return the result (which is bool)
 
-# I AM NOT SURE THIS
+# I AM NOT SURE THIS,
 # but I remember a list of objects are equal, if the class objects in
 # same index are equal
 
@@ -70,13 +70,13 @@
     # === attributes ===
         # PSM data and result
         # covered
-            # this is for 4: reduce, it say whether or not
+            # this is for 4: reduce, it says whether
             # the peptide is covered by a protein that is selected)
     # === methods ===
         # compare_peptide connections
 
 # class graph
-# it is two dict, each with node as key, and a list of nodes that this nodes has
+# it is two dict, each with node as key, and a list of nodes that this node has
 # edges to, as value
 # one for protein, one for peptides
 
@@ -91,7 +91,7 @@
     # === methods ===
         # make edges (0 arguments)
 
-        # collpase_protein (0 arguments)
+        # collapse_protein (0 arguments)
             # loop through peptide dict's keys
                 # for each peptide node, if it has more than or equal to 2 edges
                 # (to a protein or meta-protein) loop through the protein
@@ -103,8 +103,8 @@
                 # if it still has more than 2 edges
                     # do that again
 
-        # collpase_peptide (0 arguments)
-            # similar logic to collpase_protein, but peptide and protein switches
+        # collapse_peptide (0 arguments)
+            # similar logic to collapse_protein, but peptide and protein switches
 
         # DFS: input a node, output a connected a_component
             # loop over the protein dict
@@ -132,8 +132,8 @@
 
 # 1. initialize
 
-    # I am not sure about the ProteinIdentification object's data and result structure
-    # but it seems like it contain mutiple protein hits objects
+    # I am not sure about the ProteinIdentification object's data and result structure,
+    # but it seems like it contain multiple protein hits objects
     # same thing applies to PeptideIdentification and peptide hits
 
     # Protein inference algorithm is not meant to search the match between
@@ -145,7 +145,7 @@
 
     # make new object of graph
 
-    # so retrive all protein hits object
+    # so retrieve all protein hits object
     # read their accession number
     # and make a protein node
     # append it to the graph's protein dict
@@ -163,9 +163,9 @@
 
 
 # 2. collapse
-    # call collpase_protein of class graph. which:
+    # call collapse_protein of class graph. which:
 
-    # and then call collpase_peptide (which uses similar logic)
+    # and then call collapse_peptide (which uses similar logic)
 
     # give a meta node number (at initialization)
     # if they have the same number
@@ -178,14 +178,14 @@
 # by compare_peptide_neighbours?
 # ok, so I will do a fix
 # currently compare_peptide_neighbours tries to access the
-# dictionary, it may give an keyerror exception
-# but i want it to return none
+# dictionary, it may give a key error exception,
+# but I want it to return none
 # so use the get method in dict
 
-# nvm, this fix does not work, because i still need to compare that removed
+# nvm, this fix does not work, because I still need to compare that removed
 # node
 
-# but it return none, it is possible (I THINK IT IS POSSIBLE??)
+# but it returns none, it is possible (I THINK IT IS POSSIBLE??)
 # that both gets return none
 # which will return true
 
@@ -197,13 +197,13 @@
 # 3. separate
     # call DFS from peptide
 
-    # I guess i can for each a_component number
+    # I guess I can for each a_component number
     # make a a_component class object
     # and only if there is more than 1 node in the a_component, then call make
     # protein list
 
     # all nodes are initially white
-    # you pick a start node: it become grey
+    # you pick a start node: it becomes grey
     # if its neighbour is not black
 
     # make a a_component from while doing dfs
@@ -222,7 +222,7 @@
         # find_protein_most_edges
         # append that protein into the protein_List
         # for loop over the list of the protein edges
-            # and set those peptide's covered attribute to true
+            # and set those peptides covered attribute to true
 
 
     # find_protein_most_edges
@@ -240,7 +240,7 @@
         # if peptide is not flagged as covered, then
         # then flag = false
         # return flag
-    # do i need to do this, or it is better that I somehow do this while flagging
+    # do I need to do this, or it is better that I somehow do this while flagging
     # peptides as covered
 
 
@@ -250,4 +250,4 @@
 
 
 
-# problem, currently reorganize_protein_neighbours reorganizes it for all protein neighrbours
+# problem, currently reorganize_protein_neighbours reorganizes it for all protein neighbours

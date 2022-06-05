@@ -2,11 +2,10 @@
 import sys
 import matplotlib.pyplot as plt
 from pyopenms import IdXMLFile
-import collections
 
 
 """this is plotting qvalues and pp distributions of epifany result with
-respect to target and decoy, and then modified to plot pp distirbution of
+respect to target and decoy, and then modified to plot pp distribution of
 protein inference"""
 
 if __name__ == "__main__":

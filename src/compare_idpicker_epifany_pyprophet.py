@@ -1,15 +1,8 @@
-# !/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Sun Feb 28 10:07:46 2021
 
-@author: kren
-"""
-
-import collections
 import sqlite3
 import sys
 
+# noinspection PyUnresolvedReferences
 from pyopenms import IDFilter, IdXMLFile
 
 
@@ -24,8 +17,8 @@ def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
                                                           threshold)
 
     return num_epifany_distinct_protein, \
-           num_idpicker_distinct_protein, \
-           num_pyprophet_distinct_protein
+        num_idpicker_distinct_protein, \
+        num_pyprophet_distinct_protein
 
 
 def get_epifany_result(epifany_file: str, threshold: str) -> int:
@@ -92,7 +85,7 @@ def remove_decoy_protein_groups(prot_ids):
     for protein_id in prot_ids:
         # then get the protein groups
         groups = protein_id.getIndistinguishableProteins()
-        # then get all the (now) target protein htis
+        # then get all the (now) target protein hits
         hits = protein_id.getHits()
         # based on the target protein hits, remove all decoy protein group
         IDFilter().updateProteinGroups(groups, hits)
@@ -134,8 +127,6 @@ def get_idpicker_result(idpicker_file: str, threshold: str) -> int:
     idpicker_q_values = []
 
     for row in c.fetchall():
-        group_id = row[0]
-        # protein_id = row[1]
         q_value = row[1]
 
         idpicker_q_values.append(q_value)
