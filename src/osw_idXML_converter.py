@@ -1,4 +1,3 @@
-
 import sqlite3
 import sys
 from typing import Dict, List, Tuple
@@ -7,7 +6,8 @@ from typing import Dict, List, Tuple
 from pyopenms import AASequence, IdXMLFile, PeptideEvidence, PeptideHit, \
     PeptideIdentification, ProteinHit, ProteinIdentification
 
-from ppi import get_all_link_for_peptide, get_all_protein_accession, \
+from ppi import get_all_link_for_peptide, get_all_link_for_protein, \
+    get_all_protein_accession, \
     get_all_protein_id
 
 
@@ -19,20 +19,26 @@ def begin_connection(db_name: str):
 def fill_protein_identification(con, protein_identification,
                                 protein_accession_dict: Dict[str, List[str]],
                                 context,
-                                run_id):
+                                run_id,
+                                q_limit):
     # Each ProteinIdentification object stores a vector of protein hits
     target_protein_hit_list = []
     decoy_protein_hit_list = []
     protein_id_list = get_all_protein_id(con, context, run_id)
     target_protein_accession_list = []
     decoy_protein_accession_list = []
+    # setting q-limit to 1
+    protein_peptide_dict = get_all_link_for_protein(con, context, q_limit,
+                                                    run_id)
 
     for protein_id, decoy in protein_id_list:
-        list_of_protein_accession = protein_accession_dict[protein_id]
-        if decoy == 0:  # if not decoy, is targeted
-            target_protein_accession_list.extend(list_of_protein_accession)
-        elif decoy == 1:  # is decoy
-            decoy_protein_accession_list.extend(list_of_protein_accession)
+        # if it is in mapping
+        if protein_id in protein_peptide_dict:
+            list_of_protein_accession = protein_accession_dict[protein_id]
+            if decoy == 0:  # if not decoy, is targeted
+                target_protein_accession_list.extend(list_of_protein_accession)
+            elif decoy == 1:  # is decoy
+                decoy_protein_accession_list.extend(list_of_protein_accession)
 
     # strip whitespaces
     stripped_target_protein_accession_list = [s.strip() for s in
@@ -41,8 +47,10 @@ def fill_protein_identification(con, protein_identification,
                                              decoy_protein_accession_list]
 
     # make them distinct
-    stripped_target_protein_accession_list = list(set(stripped_target_protein_accession_list))
-    stripped_decoy_protein_accession_list = list(set(stripped_decoy_protein_accession_list))
+    stripped_target_protein_accession_list = list(
+        set(stripped_target_protein_accession_list))
+    stripped_decoy_protein_accession_list = list(
+        set(stripped_decoy_protein_accession_list))
 
     # last parameter ask whether it is a decoy
     make_protein_hit(target_protein_hit_list,
@@ -102,8 +110,8 @@ def fill_peptide_identification(con,
         peptide_is_decoy = bool(row[3])
 
         # if this peptide is not mapped to any protein
-        # if pep_id not in linked_protein_dict:
-        #     continue
+        if pep_id not in linked_protein_dict:
+            continue
 
         # Create new peptide identification object and fill basic information
         peptide_identification = PeptideIdentification()
@@ -142,14 +150,11 @@ def add_peptide_hit(linked_protein_dict: Dict[str, List[Tuple[str, int]]],
 
     protein_accession_list = []
 
-
-    # if not in, then it means the peptides does not map to any protein
-    if pep_id in linked_protein_dict:
-        # for all protein sqlite id that this peptide sqlite id maps to
-        for pro_id, decoy in linked_protein_dict[pep_id]:
-            # we combine the list of accession each protein sqlite id maps to
-            protein_accession_list.extend(protein_accession_dict[pro_id])
-
+    # we already checked that peptide id is in or not
+    # for all protein sqlite id that this peptide sqlite id maps to
+    for pro_id, decoy in linked_protein_dict[pep_id]:
+        # we combine the list of accession each protein sqlite id maps to
+        protein_accession_list.extend(protein_accession_dict[pro_id])
 
     # strip whitespace
     stripped_protein_accession_list = [s.strip() for s in
@@ -183,9 +188,10 @@ def store_on_disk(out_file_name, protein_id_list, peptide_id_list):
 
 
 def main(input_file: str, out_file: str, context: str, run_id: str,
-         pep_limit: str) -> None:
+         pep_limit: str, q_limit: str) -> None:
     run_id = int(run_id)
     pep_limit = int(pep_limit)
+    q_limit = int(q_limit)
 
     con = begin_connection(input_file)
 
@@ -199,7 +205,8 @@ def main(input_file: str, out_file: str, context: str, run_id: str,
 
     # then add protein hits to protein identification object
     fill_protein_identification(con, protein_identification,
-                                protein_accession_dict, context, run_id)
+                                protein_accession_dict, context, run_id,
+                                q_limit)
 
     # make protein identification into a list
     protein_id_list = [protein_identification]
@@ -209,18 +216,6 @@ def main(input_file: str, out_file: str, context: str, run_id: str,
     fill_peptide_identification(con, peptide_id_list, protein_accession_dict,
                                 context, run_id, pep_limit)
 
-    # for protein_id in protein_id_list:
-    #     for hit in protein_id.getHits():
-    #         print("Protein hit accession:", hit.getAccession())
-    #         if hit.getAccession() == " tr|H7C1C4|H7C1C4_HUMAN":
-    #             print("found it")
-    #
-    # for peptide_id in peptide_id_list:
-    #     for hit in peptide_id.getHits():
-    #         print(" - Peptide hit sequence:", hit.getSequence())
-    #         print(" - Mapping to proteins:", [ev.getProteinAccession() for ev in
-    #                                           hit.getPeptideEvidences()])
-
     # then finally store on disk
     store_on_disk(out_file, protein_id_list, peptide_id_list)
 
@@ -228,7 +223,8 @@ def main(input_file: str, out_file: str, context: str, run_id: str,
 if __name__ == "__main__":
     # if len(sys.argv) != 3:
     # print("""usage: osw_idXML_converter.py <sql file path> <out file path>""")
-    # input_osw_file, out_idXML_file, context, run_id, pep_limit
+    # input_osw_file, out_idXML_file, context, run_id, pep_limit, q_limit
     # if context is global, run_id can be anything
     # also for osw that is with the msfragger peptide, it only has global
-    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
+    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5],
+         sys.argv[6])
