@@ -1,4 +1,3 @@
-
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
@@ -6,8 +5,8 @@ import numpy as np
 import compare_idpicker_epifany_pyprophet
 
 
-def main(epifany_file: str, idpicker_file: str, pyprophet_file: str, include_epifany: str, zoom_degree):
-
+def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
+         include_epifany: str, zoom_degree):
     threshold_list = []
     num_idpicker_protein_list = []
     num_epifany_protein_list = []
@@ -29,7 +28,6 @@ def get_protein_at_threshold(epifany_file, idpicker_file,
                              num_idpicker_protein_list,
                              num_pyprophet_protein_list, pyprophet_file,
                              threshold_list, zoom_degree):
-
     # remember it is start, stop, step
     if zoom_degree == 'normal':
         loop_range = [0.1, 1.01, 0.1]
@@ -92,7 +90,12 @@ def plot_curves(include_epifany, num_epifany_protein_list,
     percent_increase_epifany_list = num_epifany_protein_list / num_pyprophet_protein_list
 
     plt.figure(1)
-    plt.plot(threshold_list)
+    if include_epifany == 'yes':
+        print('epifany is included')
+        plt.plot(threshold_list, percent_increase_epifany_list, "-s", color='red',
+                 label="Epifany Protein Groups Increase")
+    plt.plot(threshold_list, percent_increase_idpicker_list, "-o", color='blue',
+             label="Idpicker Protein Groups Increase")
     plt.title("Percentage increase of the precise recall curves in uniprot")
     plt.xlabel("FDR threshold")
     plt.ylabel("Percentage")
@@ -104,7 +107,6 @@ def plot_curves(include_epifany, num_epifany_protein_list,
 
 
 def venn_diagram(epifany_file: str, idpicker_file: str, pyprophet_file: str):
-
     num_epifany_protein, num_idpicker_protein, num_pyprophet_protein = \
         compare_idpicker_epifany_pyprophet.main(epifany_file, idpicker_file,
                                                 pyprophet_file,
@@ -124,6 +126,5 @@ if __name__ == "__main__":
     main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], 'normal')
     main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], 'zoomed')
     main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], 'zoomed plus')
-
 
     # venn_diagram(sys.argv[1], sys.argv[2], sys.argv[3])

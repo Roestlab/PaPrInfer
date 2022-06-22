@@ -10,8 +10,8 @@ def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
          threshold: str):
     num_epifany_distinct_protein = get_epifany_result(epifany_file, threshold)
 
-    num_idpicker_distinct_protein = get_idpicker_result(idpicker_file,
-                                                        threshold)
+    num_idpicker_distinct_protein = get_idpicker_numbers(idpicker_file,
+                                                         threshold)
 
     num_pyprophet_distinct_protein = get_pyprophet_result(pyprophet_file,
                                                           threshold)
@@ -19,6 +19,10 @@ def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
     return num_epifany_distinct_protein, \
         num_idpicker_distinct_protein, \
         num_pyprophet_distinct_protein
+
+def main_2(epifany_file: str, idpicker_file: str, pyprophet_file: str,
+         threshold: str):
+    pass
 
 
 def get_epifany_result(epifany_file: str, threshold: str) -> int:
@@ -64,6 +68,11 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
     # plt.ylabel("Number of proteins")
     # plt.show()
 
+
+    # a list of string, each string is a protein group
+    # seperate by a whitespace
+    print(all_protein_groups)
+
     """protein groups"""
     epifany_proteins_groups = []
 
@@ -101,7 +110,7 @@ def remove_decoy_protein_groups(prot_ids):
             protein_id.insertProteinGroup(group)
 
 
-def get_idpicker_result(idpicker_file: str, threshold: str) -> int:
+def get_idpicker_numbers(idpicker_file: str, threshold: str) -> int:
     """now for idpicker """
     con = sqlite3.connect(idpicker_file)
 
@@ -159,6 +168,38 @@ def get_idpicker_result(idpicker_file: str, threshold: str) -> int:
     # print("num only in idpicker", len(only_in_idpicker))
 
     return len(idpicker_q_values)
+
+
+def get_idpicker_accessions(idpicker_file: str, threshold: str):
+
+    con = sqlite3.connect(idpicker_file)
+
+    c = con.cursor()
+
+    c.execute(
+        """SELECT DISTINCT PROTEIN_GROUP.PROTEIN_GROUP_ID, PROTEIN_GROUP.PROTEIN_ID
+        FROM PROTEIN_GROUP
+        INNER JOIN SCORE_PROTEIN_GROUP ON PROTEIN_GROUP.PROTEIN_GROUP_ID = SCORE_PROTEIN_GROUP.PROTEIN_GROUP_ID
+        WHERE PROTEIN_GROUP.DECOY = 0 AND SCORE_PROTEIN_GROUP.QVALUE <= :threshold""",
+        {'threshold': float(threshold)}
+    )
+
+    protein_group_to_accession = {}
+
+    for row in c.fetchall():
+        protein_group_id = row[0]
+        protein_accession = row[1]
+
+        protein_group_to_accession.setdefault(protein_group_id, []).append(
+            protein_accession)
+
+    all_accessions = []
+    for protein_group, protein_accession_list in protein_group_to_accession.items():
+        accessions = ' '.join(protein_accession_list)
+        all_accessions.append(accessions)
+
+    return all_accessions
+
 
 
 def get_pyprophet_result(pyprophet_file: str, threshold: str) -> int:
