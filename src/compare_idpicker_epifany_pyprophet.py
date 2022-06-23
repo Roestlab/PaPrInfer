@@ -20,6 +20,7 @@ def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
         num_idpicker_distinct_protein, \
         num_pyprophet_distinct_protein
 
+
 def main_2(epifany_file: str, idpicker_file: str, pyprophet_file: str,
          threshold: str):
     pass
@@ -140,6 +141,9 @@ def get_idpicker_numbers(idpicker_file: str, threshold: str) -> int:
 
         idpicker_q_values.append(q_value)
 
+    con.commit()
+    con.close()
+
     # TODO maybe I should just use set default to group protein into groups
     #   and then venn diagram compare that to pyprophet protein
 
@@ -193,6 +197,9 @@ def get_idpicker_accessions(idpicker_file: str, threshold: str):
         protein_group_to_accession.setdefault(protein_group_id, []).append(
             protein_accession)
 
+    con.commit()
+    con.close()
+
     all_accessions = []
     for protein_group, protein_accession_list in protein_group_to_accession.items():
         accessions = ' '.join(protein_accession_list)
@@ -226,6 +233,9 @@ def get_pyprophet_result(pyprophet_file: str, threshold: str) -> int:
         protein = row[0]
 
         pyprophet_proteins.append(protein)
+
+    con.commit()
+    con.close()
 
     pyprophet_distinct_protein = set(pyprophet_proteins)
     print("pyprophet", len(pyprophet_distinct_protein))
