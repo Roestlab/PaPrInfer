@@ -2,7 +2,7 @@ import sys
 from typing import Any, Dict, List, Tuple
 
 from pyopenms import IdXMLFile
-from compare_idpicker_epifany_pyprophet import remove_decoy_protein_groups
+from get_proteins_at_threshold import remove_decoy_protein_groups
 import sqlite3
 
 
@@ -153,7 +153,7 @@ def write_into_text_file(epifany_protein_peptide_dict,
         lines.append(protein)
         lines.append(peptide_sequence)
 
-    with open('all_result.txt', 'w') as f:
+    with open('figures and files/all_result.txt', 'w') as f:
         for line in lines:
             f.write(line)
             f.write('\n')

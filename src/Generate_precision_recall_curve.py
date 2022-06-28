@@ -2,7 +2,7 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-import compare_idpicker_epifany_pyprophet
+import get_proteins_at_threshold
 
 
 def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
