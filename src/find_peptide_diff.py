@@ -33,11 +33,13 @@ def main(swissprot_library, uniprot_library):
     for pep in swissprot_only:
         first_aa_list_swissprot.append(pep[0])
 
+    print('swissprot', len(first_aa_list_swissprot))
     print(Counter(first_aa_list_swissprot))
 
     for pep in uniprot_only:
         first_aa_list_uniprot.append(pep[0])
 
+    print('uniprot', len(first_aa_list_uniprot))
     print(Counter(first_aa_list_uniprot))
 
     with open('figures and files/library unique peptides.txt', 'w') as f:

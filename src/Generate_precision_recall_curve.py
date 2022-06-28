@@ -12,10 +12,10 @@ def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
     num_epifany_protein_list = []
     num_pyprophet_protein_list = []
 
-    get_protein_at_threshold(epifany_file, idpicker_file,
+    get_protein_at_threshold(epifany_file, idpicker_file, pyprophet_file,
                              num_epifany_protein_list,
                              num_idpicker_protein_list,
-                             num_pyprophet_protein_list, pyprophet_file,
+                             num_pyprophet_protein_list,
                              threshold_list, zoom_degree)
 
     plot_curves(include_epifany, num_epifany_protein_list,
@@ -23,10 +23,10 @@ def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
                 threshold_list, zoom_degree)
 
 
-def get_protein_at_threshold(epifany_file, idpicker_file,
+def get_protein_at_threshold(epifany_file, idpicker_file, pyprophet_file,
                              num_epifany_protein_list,
                              num_idpicker_protein_list,
-                             num_pyprophet_protein_list, pyprophet_file,
+                             num_pyprophet_protein_list,
                              threshold_list, zoom_degree):
     # remember it is start, stop, step
     if zoom_degree == 'normal':
@@ -45,9 +45,9 @@ def get_protein_at_threshold(epifany_file, idpicker_file,
         print("threshold", threshold)
 
         num_epifany_protein, num_idpicker_protein, num_pyprophet_protein = \
-            compare_idpicker_epifany_pyprophet.main(epifany_file, idpicker_file,
-                                                    pyprophet_file,
-                                                    str(threshold))
+            get_proteins_at_threshold.main(epifany_file, idpicker_file,
+                                           pyprophet_file,
+                                           str(threshold), True, False)
 
         threshold_list.append(threshold)
         num_idpicker_protein_list.append(num_idpicker_protein)
@@ -92,7 +92,8 @@ def plot_curves(include_epifany, num_epifany_protein_list,
     plt.figure(1)
     if include_epifany == 'yes':
         print('epifany is included')
-        plt.plot(threshold_list, percent_increase_epifany_list, "-s", color='red',
+        plt.plot(threshold_list, percent_increase_epifany_list, "-s",
+                 color='red',
                  label="Epifany Protein Groups Increase")
     plt.plot(threshold_list, percent_increase_idpicker_list, "-o", color='blue',
              label="Idpicker Protein Groups Increase")
@@ -108,18 +109,17 @@ def plot_curves(include_epifany, num_epifany_protein_list,
 
 def venn_diagram(epifany_file: str, idpicker_file: str, pyprophet_file: str):
     num_epifany_protein, num_idpicker_protein, num_pyprophet_protein = \
-        compare_idpicker_epifany_pyprophet.main(epifany_file, idpicker_file,
-                                                pyprophet_file,
-                                                str(0.05))
+        get_proteins_at_threshold.main(epifany_file, idpicker_file,
+                                       pyprophet_file,
+                                       str(0.05), True, False)
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) != 3:
-    # print("""usage: osw_idXML_converter.py <sql file path> <q-value threshold for peptides>""")
-    # main(sys.argv[1], sys.argv[2])
+
     # epifany output file, idpicker output file
-    # pyprophet output file is the same as idpicker
-    # I compare if the fourth argument is 'yes' or not
+    # pyprophet output file
+    # I compare if the fourth argument is 'yes' or not, to include epifany
+    # on the plot or not
 
     # TODO: I should use argparse probably
 

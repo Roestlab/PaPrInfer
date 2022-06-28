@@ -1,6 +1,6 @@
 import unittest
 
-from src import ppi
+from src import idpicker
 
 
 # class TestInitialization(unittest.TestCase):

@@ -1,14 +1,18 @@
 
 import sqlite3
-import sys
 
 # noinspection PyUnresolvedReferences
+from typing import Any, List, Set, Union
+
 from pyopenms import IDFilter, IdXMLFile
 
 
 def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
-         threshold: str):
-    num_epifany_distinct_protein = get_epifany_result(epifany_file, threshold)
+         threshold: str, remove_decoy: bool, return_qvalue: bool):
+    num_epifany_distinct_protein = len(get_epifany_result(epifany_file,
+                                                          threshold,
+                                                          remove_decoy,
+                                                          return_qvalue))
 
     num_idpicker_distinct_protein = get_idpicker_numbers(idpicker_file,
                                                          threshold)
@@ -21,12 +25,8 @@ def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
         num_pyprophet_distinct_protein
 
 
-def main_2(epifany_file: str, idpicker_file: str, pyprophet_file: str,
-         threshold: str):
-    pass
-
-
-def get_epifany_result(epifany_file: str, threshold: str) -> int:
+def get_epifany_result(epifany_file: str, threshold: str, remove_decoy: bool, return_qvalue: bool) -> \
+        Union[List[Any], Set[Any]]:
     # getting all protein from epifany
     prot_ids = []
     pep_ids = []
@@ -38,12 +38,19 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
 
     protein_group_probability = {}
 
-    remove_decoy_protein_groups(prot_ids)
+    if remove_decoy:
+        remove_decoy_protein_groups(prot_ids)
 
     # read the protein groups
     for protein_id in prot_ids:
 
-        for group in protein_id.getProteinGroups():
+        # because I put all the target groups in getProteinGroup
+        if remove_decoy:
+            idxml_protein_group_list = protein_id.getProteinGroups()
+        else:
+            idxml_protein_group_list = protein_id.getIndistinguishableProteins()
+
+        for group in idxml_protein_group_list:
 
             # list of bytes
             accession_list_bytes = group.accessions
@@ -71,14 +78,19 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
 
 
     # a list of string, each string is a protein group
-    # seperate by a whitespace
-    print(all_protein_groups)
+    # separate by a whitespace
+    # all_protein_groups
 
-    """protein groups"""
+    # only protein group below the threshold
     epifany_proteins_groups = []
 
+    qvalue_list = []
+
+    # protein_group_probability is a dict
     for groups in protein_group_probability:
         probability = min(protein_group_probability[groups])
+
+        qvalue_list.append(probability)
 
         if probability <= float(threshold):
             epifany_proteins_groups.append(groups)
@@ -86,16 +98,20 @@ def get_epifany_result(epifany_file: str, threshold: str) -> int:
     epifany_distinct_proteins_groups = set(epifany_proteins_groups)
     print("epifany groups", len(epifany_distinct_proteins_groups))
 
-    return len(epifany_distinct_proteins_groups)
+
+    if return_qvalue:
+        return qvalue_list
+    else:
+        return epifany_distinct_proteins_groups
 
 
 def remove_decoy_protein_groups(prot_ids):
-    # first remove all the decoy protein hits
+    # first remove all the decoy protein hits, it remove from getHits()
     IDFilter().removeDecoyHits(prot_ids)
     for protein_id in prot_ids:
         # then get the protein groups
         groups = protein_id.getIndistinguishableProteins()
-        # then get all the (now) target protein hits
+        # then get all the (now is updated to only target) protein hits
         hits = protein_id.getHits()
         # based on the target protein hits, remove all decoy protein group
         IDFilter().updateProteinGroups(groups, hits)
@@ -243,10 +259,8 @@ def get_pyprophet_result(pyprophet_file: str, threshold: str) -> int:
     return len(pyprophet_distinct_protein)
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
     # if len(sys.argv) != 3:
-    # print("""usage: osw_idXML_converter.py <sql file path> <q-value threshold for peptides>""")
-    # main(sys.argv[1], sys.argv[2])
     # epifany output file, idpicker output file, pyprophet file q-value threshold
-    # pyprophet output file is the same as the idpicker
-    main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4])
+    # whether to remove decoys
+    # main(sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5])
