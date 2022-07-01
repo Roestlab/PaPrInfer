@@ -26,7 +26,7 @@ def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
 
 
 def get_epifany_result(epifany_file: str, threshold: str, remove_decoy: bool, return_qvalue: bool) -> \
-        Union[List[Any], Set[Any]]:
+        Union[Set[str], List[int]]:
     # getting all protein from epifany
     prot_ids = []
     pep_ids = []
@@ -52,30 +52,23 @@ def get_epifany_result(epifany_file: str, threshold: str, remove_decoy: bool, re
 
         for group in idxml_protein_group_list:
 
-            # list of bytes
+            # list of bytes representing the accessions
             accession_list_bytes = group.accessions
 
+            # a list of str representing the accessions
             accession_list_str = [accession_bytes.decode("utf-8") for
                                   accession_bytes in accession_list_bytes]
 
-            accessions = ' '.join(accession_list_str)
+            # sort it and strip it
+            sorted_accession_list_str = sorted(accession_list_str)
+            stripped_sorted_accession_list_str = [s.strip() for s in sorted_accession_list_str]
+
+            # this means use this string ' ' to join the list
+            accessions = ' '.join(stripped_sorted_accession_list_str)
 
             all_protein_groups.append(accessions)
             protein_group_probability.setdefault(accessions, []).append(
                 group.probability)
-
-    # _ = plt.hist(epifany_q_values, bins='auto')
-    # plt.title("epifany qvalue")
-    # plt.xlabel("Q value")
-    # plt.ylabel("Number of proteins")
-    # plt.show()
-
-    # _ = plt.hist(epifany_pep, bins='auto')
-    # plt.title("epifany pep")
-    # plt.xlabel("Posterior Error Probability")
-    # plt.ylabel("Number of proteins")
-    # plt.show()
-
 
     # a list of string, each string is a protein group
     # separate by a whitespace
@@ -105,7 +98,7 @@ def get_epifany_result(epifany_file: str, threshold: str, remove_decoy: bool, re
         return epifany_distinct_proteins_groups
 
 
-def remove_decoy_protein_groups(prot_ids):
+def remove_decoy_protein_groups(prot_ids) -> None:
     # first remove all the decoy protein hits, it remove from getHits()
     IDFilter().removeDecoyHits(prot_ids)
     for protein_id in prot_ids:
@@ -160,42 +153,19 @@ def get_idpicker_numbers(idpicker_file: str, threshold: str) -> int:
     con.commit()
     con.close()
 
-    # TODO maybe I should just use set default to group protein into groups
-    #   and then venn diagram compare that to pyprophet protein
-
-    # _ = plt.hist(idpicker_pep, bins='auto')
-    # plt.title("Idpicker pep")
-    # plt.xlabel("Posterior Error Probability")
-    # plt.ylabel("Number of Proteins")
-    # plt.show()
-    #
-    # _ = plt.hist(idpicker_q_values, bins='auto')
-    # plt.title("Idpicker qvalue")
-    # plt.xlabel("Q Value")
-    # plt.ylabel("Number of Proteins")
-    # plt.show()
-
     print("IDpicker", len(idpicker_q_values))
-
-    # in_both = idpicker_distinct_protein.intersection(epifany_distinct_proteins)
-    #
-    # print("in both", len(in_both))
-    #
-    # only_in_epifany = epifany_distinct_proteins.difference(idpicker_distinct_protein)
-    # only_in_idpicker = idpicker_distinct_protein.difference(epifany_distinct_proteins)
-    #
-    # print("num only in epifany", len(only_in_epifany))
-    # print("num only in idpicker", len(only_in_idpicker))
 
     return len(idpicker_q_values)
 
 
-def get_idpicker_accessions(idpicker_file: str, threshold: str):
+def get_idpicker_accessions(idpicker_file: str, threshold: str) -> Set[str]:
 
     con = sqlite3.connect(idpicker_file)
 
     c = con.cursor()
 
+    # I cannot remember why I need distinct, was it like inner join
+    # produce multiple identical row or something?
     c.execute(
         """SELECT DISTINCT PROTEIN_GROUP.PROTEIN_GROUP_ID, PROTEIN_GROUP.PROTEIN_ID
         FROM PROTEIN_GROUP
@@ -204,24 +174,34 @@ def get_idpicker_accessions(idpicker_file: str, threshold: str):
         {'threshold': float(threshold)}
     )
 
-    protein_group_to_accession = {}
+    protein_group_to_accessions = {}
 
     for row in c.fetchall():
         protein_group_id = row[0]
         protein_accession = row[1]
 
-        protein_group_to_accession.setdefault(protein_group_id, []).append(
+        # if the protein_group_id already exist in dict, then get its value
+        # if not give a empty list and append the protein accession
+        protein_group_to_accessions.setdefault(protein_group_id, []).append(
             protein_accession)
 
     con.commit()
     con.close()
 
     all_accessions = []
-    for protein_group, protein_accession_list in protein_group_to_accession.items():
-        accessions = ' '.join(protein_accession_list)
+    for protein_group, protein_accession_list in protein_group_to_accessions.items():
+
+        # sort and strip them
+        sorted_protein_accession_list = sorted(protein_accession_list)
+        stripped_sorted_protein_accession_list = [s.strip() for s in sorted_protein_accession_list]
+
+        # this means use this string ' ' to join the list
+        accessions = ' '.join(stripped_sorted_protein_accession_list)
+
+        accessions.strip()
         all_accessions.append(accessions)
 
-    return all_accessions
+    return set(all_accessions)
 
 
 
@@ -257,6 +237,37 @@ def get_pyprophet_result(pyprophet_file: str, threshold: str) -> int:
     print("pyprophet", len(pyprophet_distinct_protein))
 
     return len(pyprophet_distinct_protein)
+
+
+def get_pyprophet_accessions(pyprophet_file: str, threshold: str) -> Set[str]:
+    con = sqlite3.connect(pyprophet_file)
+
+    c = con.cursor()
+
+    c.execute(
+        """select PROTEIN_ACCESSION
+        from PROTEIN 
+        inner join SCORE_PROTEIN on PROTEIN.ID = SCORE_PROTEIN.PROTEIN_ID
+        where DECOY = 0 and QVALUE <=  :threshold""",
+        {'threshold': float(threshold)}
+    )
+
+    pyprophet_proteins = []
+
+    for row in c.fetchall():
+        protein_accession = row[0]
+
+        protein_accession.strip()
+
+        pyprophet_proteins.append(protein_accession)
+
+    con.commit()
+    con.close()
+
+    pyprophet_distinct_protein = set(pyprophet_proteins)
+
+    return pyprophet_distinct_protein
+
 
 
 # if __name__ == "__main__":

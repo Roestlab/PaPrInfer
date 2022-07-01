@@ -1,5 +1,4 @@
 import sqlite3
-from collections import Counter
 import sys
 
 
@@ -48,7 +47,7 @@ def get_pep_from_sqlite_db(idpicker_file):
 
     return pep_list
 
+
 if __name__ == "__main__":
     # the epifany output file and a threshold
     main(sys.argv[1], sys.argv[2])
-

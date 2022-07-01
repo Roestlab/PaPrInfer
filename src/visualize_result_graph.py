@@ -6,6 +6,13 @@ from get_proteins_at_threshold import remove_decoy_protein_groups
 import sqlite3
 
 
+"""this does 3 things, 
+1. write all result of idpicker and epifany into a text file
+so it is easy to text search it
+2. (Not finished) compute the number of inferred protein per component for both epifany and idpicker
+3. (not started) plot the entire graph into cytoscape"""
+
+
 # import py2cytoscape
 # from py2cytoscape.data.cyrest_client import CyRestClient
 

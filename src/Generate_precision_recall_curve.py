@@ -107,11 +107,7 @@ def plot_curves(include_epifany, num_epifany_protein_list,
     plt.show()
 
 
-def venn_diagram(epifany_file: str, idpicker_file: str, pyprophet_file: str):
-    num_epifany_protein, num_idpicker_protein, num_pyprophet_protein = \
-        get_proteins_at_threshold.main(epifany_file, idpicker_file,
-                                       pyprophet_file,
-                                       str(0.05), True, False)
+
 
 
 if __name__ == "__main__":
