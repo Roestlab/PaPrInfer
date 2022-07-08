@@ -28,3 +28,10 @@ if __name__ == "__main__":
             f.write(line)
             f.write('\n')
 
+
+    only_in_idpicker = uniprot_idpicker_proteins_accession.difference(uniprot_epifany_proteins_accession)
+
+    with open('figures and files/only_in_idpicker_accessions.txt', 'w') as f:
+        for line in list(only_in_idpicker):
+            f.write(line)
+            f.write('\n')

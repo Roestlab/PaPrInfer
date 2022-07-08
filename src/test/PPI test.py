@@ -101,43 +101,43 @@ class TestCollapse(unittest.TestCase):
 
     def test_compare_neighbours_1(self):
         self.assertTrue(
-            self.graph_1.compare_neighbours((self.pep1, self.pep5))
+            self.graph_1.compare_neighbours_old((self.pep1, self.pep5))
         )
 
     def test_compare_neighbours_2(self):
         self.assertTrue(
-            self.graph_1.compare_neighbours((self.pep3, self.pep9))
+            self.graph_1.compare_neighbours_old((self.pep3, self.pep9))
         )
 
     def test_compare_neighbours_3(self):
         self.assertFalse(
-            self.graph_1.compare_neighbours((self.pep2, self.pep4))
+            self.graph_1.compare_neighbours_old((self.pep2, self.pep4))
         )
 
     def test_compare_neighbours_4(self):
         self.assertFalse(
             # two neighbours that is the same, one extra for 8
-            self.graph_1.compare_neighbours((self.pep8, self.pep4))
+            self.graph_1.compare_neighbours_old((self.pep8, self.pep4))
         )
 
     def test_compare_neighbours_5(self):
         self.assertTrue(
-            self.graph_1.compare_neighbours((self.pro2, self.pro8))
+            self.graph_1.compare_neighbours_old((self.pro2, self.pro8))
         )
 
     def test_compare_neighbours_6(self):
         self.assertTrue(
-            self.graph_1.compare_neighbours((self.pro4, self.pro9))
+            self.graph_1.compare_neighbours_old((self.pro4, self.pro9))
         )
 
     def test_compare_neighbours_7(self):
         self.assertFalse(
-            self.graph_1.compare_neighbours((self.pro3, self.pro6))
+            self.graph_1.compare_neighbours_old((self.pro3, self.pro6))
         )
 
     def test_compare_neighbours_8(self):
         self.assertTrue(
-            self.graph_1.compare_neighbours((self.pep1, self.pep5))
+            self.graph_1.compare_neighbours_old((self.pep1, self.pep5))
         )
 
     def test_delete_node_1(self):

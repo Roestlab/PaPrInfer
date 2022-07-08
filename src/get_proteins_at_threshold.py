@@ -188,6 +188,7 @@ def get_idpicker_accessions(idpicker_file: str, threshold: str) -> Set[str]:
     con.commit()
     con.close()
 
+
     all_accessions = []
     for protein_group, protein_accession_list in protein_group_to_accessions.items():
 

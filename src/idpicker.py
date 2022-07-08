@@ -13,7 +13,6 @@ from node import Peptide, Protein
 
 
 def main(input_file: str, q_limit_pep: str, context: str, run_id: str) -> None:
-
     assert context == 'global' or context == 'run-specific'
 
     con = begin_connection(input_file)
@@ -48,7 +47,8 @@ def initialize(protein_peptide_graph: Graph, con,
     protein_id_list = get_all_protein_id(con, context, run_id)
     print("got all protein")
 
-    linked_peptide_dict = get_all_link_for_protein(con, context, q_limit, run_id)
+    linked_peptide_dict = get_all_link_for_protein(con, context, q_limit,
+                                                   run_id)
     print("got all link from protein to peptide")
 
     protein_accession_dict = get_all_protein_accession(con)
@@ -71,6 +71,16 @@ def initialize(protein_peptide_graph: Graph, con,
     protein_peptide_graph.get_sort_keys()
     print("keys sorted by their id")
 
+    # TODO test
+    print("after just initialization")
+    for key, value_list in protein_peptide_graph.node_dict.items():
+        if key.get_first_id() == 'sp|Q96Q89-3|KI20B_HUMAN':
+            value_accession_list = []
+            for value in value_list:
+                accession = value.get_first_id()
+                value_accession_list.append(accession)
+            print(value_accession_list)
+
     print("initialized")
 
     num_t_protein = 0
@@ -88,7 +98,6 @@ def initialize(protein_peptide_graph: Graph, con,
             num_d_protein += 1
         elif isinstance(node, Peptide) and node.get_target_decoy() == '1':
             num_d_peptide += 1
-
 
     print("total nodes", len(protein_peptide_graph.get_node_dict()))
     print("total edges", num_edges)
@@ -150,13 +159,19 @@ def separate(protein_peptide_graph: Graph) -> List[Component]:
     # for all white peptide nodes, explore them
     protein_peptide_graph.make_accession_object_dict()
 
+    if 'sp|Q9UI08-5|EVL_HUMAN' + '0' in protein_peptide_graph.node_to_delete:
+        print('-5 it is deleted')
+    else:
+        print('-5 is not deleted')
+
     component_list = []
 
     for node in protein_peptide_graph.node_dict.keys():
 
         # if it is white and not deleted
         if protein_peptide_graph.is_white(node) and \
-                node.get_first_id() not in protein_peptide_graph.node_to_delete:
+                (node.get_first_id() + node.get_target_decoy()) \
+                not in protein_peptide_graph.node_to_delete:
 
             a_component = Component()
             protein_peptide_graph.dfs(node, a_component)
@@ -232,7 +247,6 @@ def reduce(component_list: List[Component], con) -> None:
     create_table_protein_group_peptide_mapping(con)
     protein_group_data_entry(con, min_pro_list)
 
-
     print("reduced")
 
 
@@ -265,7 +279,8 @@ def get_all_protein_id(con, context: str, run_id: int) -> List[Tuple[str, int]]:
             """SELECT PROTEIN_ID, DECOY
             FROM SCORE_PROTEIN 
             INNER JOIN PROTEIN ON SCORE_PROTEIN.PROTEIN_ID = PROTEIN.ID
-            WHERE CONTEXT='run-specific' AND RUN_ID=:run_id""", {"run_id": run_id})
+            WHERE CONTEXT='run-specific' AND RUN_ID=:run_id""",
+            {"run_id": run_id})
     all_protein_id_list = []
     for row in c.fetchall():
         all_protein_id_list.append((str(row[0]), row[1]))
@@ -308,7 +323,8 @@ def get_all_peptide(con, q_limit: int, context: str, run_id: int) \
     #  something like that, note this data is in SCORE_PROTEIN or SCORE_PEPTIDE
 
 
-def get_all_link_for_protein(con, context, q_limit, run_id) -> Dict[str, List[Tuple[str, float, int]]]:
+def get_all_link_for_protein(con, context, q_limit, run_id) -> Dict[
+    str, List[Tuple[str, float, int]]]:
     c = con.cursor()
     if context == 'global':
         c.execute(
@@ -361,10 +377,17 @@ def get_all_protein_accession(con) -> Dict[str, List[str]]:
     for row in c.fetchall():
         protein_sqlite_id = str(row[0])
         accession_sublist = row[1].split(",")
+
+        stripped_accession_sublist = [s.strip() for s in accession_sublist]
         # if key was not in the dict, setdefault return the default value,
         # empty list here. if it was then it returns the value
-        protein_accession_dict.\
-            setdefault(protein_sqlite_id, []).extend(accession_sublist)
+        protein_accession_dict. \
+            setdefault(protein_sqlite_id, []).extend(stripped_accession_sublist)
+
+        # TODO test
+        if 'sp|Q9UI08-5|EVL_HUMAN' in stripped_accession_sublist:
+            print(protein_sqlite_id)
+
     c.close()
 
     for accession_list in protein_accession_dict.keys():
@@ -422,7 +445,7 @@ def create_table_protein_group_peptide_mapping(con) -> None:
 
 
 def protein_group_data_entry(con, min_pro_list: List[List[Tuple[
-        List[str], float, str, Any]]]) -> None:
+    List[str], float, str, Any]]]) -> None:
     c = con.cursor()
     component_id = 0
     protein_group_id = 0

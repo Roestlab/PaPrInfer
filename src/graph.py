@@ -45,8 +45,8 @@ class Graph:
             self.node_dict[current_peptide] = []
 
     def add_protein(self, protein_id_list: List[Tuple[str, int]],
-                    linked_peptide_dict: Dict[str, List[Tuple[str, float, int]]]
-                    , protein_accession_dict: Dict[str, List[str]]) \
+                    linked_peptide_dict: Dict[str, List[Tuple[str, float, int]]],
+                    protein_accession_dict: Dict[str, List[str]]) \
             -> None:
         """
         the protein with this accession may already be in the graph
@@ -66,6 +66,11 @@ class Graph:
                     self.node_dict[current_protein] = []
                 self.make_edge_from_protein_id(current_protein,
                                                linked_peptide_dict)
+
+            # TODO testing
+            if 'sp|Q9UI08-5|EVL_HUMAN' in protein_accession_list:
+                print('what', protein_id, decoy)
+
 
     def make_edge_from_protein_id(self,
                                   the_protein: Protein,
@@ -94,9 +99,8 @@ class Graph:
             self.delete_node(the_protein)
 
     def make_edges_from_peptide(self,
-                                linked_protein_dict: Dict[str,
-                                                          List[Tuple[str, int]]]
-                                , protein_accession_dict: Dict[str, List[str]]) \
+                                linked_protein_dict: Dict[str, List[Tuple[str, int]]],
+                                protein_accession_dict: Dict[str, List[str]]) \
             -> None:
         """
         iterate through the peptide keys, and for each, get their link (most
@@ -166,27 +170,33 @@ class Graph:
 
     def collapse_graph(self) -> None:
 
+        # take all nodes (keys)
         key_list = list(self.node_dict)
 
+        # then group them based on their degree as a list of lists
         all_nodes_reorganized = self.reorder_neighbours(key_list)
 
         # TODO: Better name
-        max_num = len(all_nodes_reorganized)
+        max_degree = len(all_nodes_reorganized)
 
-        progress_count = 1
+        # the value is n when the nodes from degree n to 1 are finished
+        progress_count_in_degrees = 1
 
+        # i.e. for every degree
         for num_edges in range(len(all_nodes_reorganized)):
 
             # skip the group of protein that only map 0 proteins
+            # i.e. skip the degree of zero
             if num_edges == 0:
                 continue
 
+            # these are all the nodes with the same degree
             same_edges_node_list = all_nodes_reorganized[num_edges]
 
-            # there are no node that have exactly num_edges edges
+            # if there are no node that have exactly num_edges degree
             if len(same_edges_node_list) == 0:
-                print(progress_count, max_num, "no node")
-                progress_count += 1
+                print(progress_count_in_degrees, max_degree, "no node")
+                progress_count_in_degrees += 1
                 continue
 
             # start this by first subset (and clone) the node dict
@@ -195,10 +205,11 @@ class Graph:
             # then pass the neighbour list and the dict into recursion
             # first protein to remove is key, since all neighbours in
             # neighbour_list share this
+            same_edges_node_list.sort()
             self.grouping_recursion(same_edges_node_list, specific_dict)
 
-            print(progress_count, max_num)
-            progress_count += 1
+            print(progress_count_in_degrees, max_degree)
+            progress_count_in_degrees += 1
 
     def collapse_graph_old(self) -> None:
         # for each node
@@ -310,29 +321,32 @@ class Graph:
         return neighbours_reorganized
 
     def build_specific_node_dict(self,
-                                 all_peptides: List[Node],
-                                 peptide_protein_dict: Dict[Node, List[Node]]) \
+                                 same_degree_protein: List[Node],
+                                 protein_peptide_dict: Dict[Node, List[Node]]) \
             -> None:
         """
         terminology assumes we are trying to merge peptides
-        :param peptide_protein_dict:
-        :param all_peptides is all the peptides that have the same number
+        :param protein_peptide_dict:
+        :param same_degree_protein is all the peptides that have the same number
         of protein that they map to
         :return type should be peptide map to a list of protein since I am only
         using this for collapsing peptides
         """
 
-        for peptide in all_peptides:
+        for peptide in same_degree_protein:
             # is a neighbour and a protein
-            neighbour_and_protein = self.node_dict.get(peptide).copy()
-            neighbour_and_protein.sort()
-            peptide_protein_dict[peptide] = neighbour_and_protein
+            neighbour_and_protein = self.node_dict.get(peptide, [])
+            if len(neighbour_and_protein) == 0:
+                print('something is wrong')
+                exit('something is wrong')
+            protein_peptide_dict[peptide] = sorted(neighbour_and_protein)
 
-    def grouping_recursion(self, some_peptides: List[Node],
-                           peptide_protein_dict: Dict[Node, List[Node]]):
-        """terminology assume we are merging peptides
-        first build a dict based on the peptides given, but without the
-        protein that is these peptides have in common for sure
+    def grouping_recursion(self, same_degree_protein: List[Node],
+                           protein_peptide_dict: Dict[Node, List[Node]]):
+        """terminology assume we are merging protein
+        first build a dict based on the protein given, but without the
+        protein that is these peptides have in common for sure (this is done by
+        build_specific_node_dict method)
 
         second check how many protein do each of the peptides have left
         this should all be the same number since the initial peptide inputted
@@ -344,85 +358,121 @@ class Graph:
         into recursion
         """
 
-        num_protein = []
+        num_peptide = []
 
-        # remove the protein, then count the number
-        # for each key
-        for peptide in some_peptides:
-            # get the value
-            protein = peptide_protein_dict.get(peptide)
-            # count the rest
-            num_protein.append(len(protein))
+        # for each protein with the same degree
+        for protein in same_degree_protein:
+            # get its neighbouring peptides
+            protein_list = protein_peptide_dict.get(protein)
+            # and count
+            num_peptide.append(len(protein_list))
 
-        # the length of the set is the number of unique element in num_protein (
-        # i.e. how many number of proteins do these some_peptides have
-        # which should be 1, meaning that they all have the same number
-        assert len(set(num_protein)) < 2
+        # the length of the set is the number of unique element in num_peptide (
+        # i.e. how many peptides do these same_degree_protein connect to
+        # which should be 1, meaning that they all have the same degree
+        assert len(set(num_peptide)) < 2
 
-        # this is the number of protein that not been used for grouping
-        num_protein_all = list(set(num_protein))[0]
+        # this is the number of protein that not yet been used for grouping
+        # it is initially the degree
+        num_protein_all = list(set(num_peptide))[0]
 
-        # the peptide in some_peptide all were part of a list that
-        # all map to the same set of protein
+
+        # TODO: test
+        all_id = []
+        for protein in same_degree_protein:
+            accession = protein.get_first_id()
+            if not 'DECOY' in accession and not accession.isnumeric():
+                all_id.append(protein.get_first_id())
+
+        if 'sp|Q9UI08-5|EVL_HUMAN' in all_id:
+            print('before merging', print(num_protein_all))
+            print('all id', all_id)
+
+        # the protein in same_degree_protein all were part of a list that
+        # all map to the same set of peptide
 
         # base case (we have gotten to final protein)
-        # if there are no other protein that it map to, then this means
-        # this peptide only map to this set
+        # if there are no other peptide that it map to, then this means
+        # this protein only map to this set
+        # this means that all the protein with the same degree has been grouped
+        # into groups where within each group all the protein's peptides are the same
+        # each function call that end up in the base case only is given a set of
+        # protein that share all its peptide
         if num_protein_all == 0:
 
-            some_peptides.sort()
-            # merge all the peptides
+            # TODO when it was sort() there was nothing wrong (problem)
+            sorted_same_degree_protein = sorted(same_degree_protein)
+            # merge the protein that share the same set of peptides
             # TODO: refactor and extract this as a method
-            final_peptide_group = some_peptides[0]
-            for index in range(1, len(some_peptides)):
-                peptide = some_peptides[index]
-                self.delete_node(peptide)
-                id_list = peptide.get_id()
-                score = peptide.get_score()
-                final_peptide_group.add_id(id_list)
+            # choose the first object in the list as the one to merge to
+            final_protein_group = sorted_same_degree_protein[0]
 
+            # TODO: remove test
+            if 'sp|Q9UI08-2|EVL_HUMAN' in final_protein_group.get_id():
+                print('protein of interest', final_protein_group.get_id())
+                print('interest first id', final_protein_group.get_first_id())
+                for protein in sorted_same_degree_protein:
+                    print('other protein', protein.get_id())
+                    print('other protein first id', protein.get_first_id())
+
+            # for all the protein in this set, skipping first one
+            for index in range(1, len(sorted_same_degree_protein)):
+                protein = sorted_same_degree_protein[index]
+                self.delete_node(protein)
+
+                id_list = protein.get_id()
+                score = protein.get_score()
+
+                final_protein_group.add_id(id_list)
                 # this only keeps the max score of them two
-                final_peptide_group.add_score(score)
+                final_protein_group.add_score(score)
+
+            if 'sp|Q9UI08-2|EVL_HUMAN' in final_protein_group.get_id():
+                print('final protein group of interest', final_protein_group.get_id())
 
             # TODO supposed bottleneck
-            # final_id_list = final_peptide_group.get_id()
-            # self.key_add_id(final_peptide_group, final_id_list)
+            # final_id_list = final_protein_group.get_id()
+            # self.key_add_id(final_protein_group, final_id_list)
 
         # recursive case, not 0
         else:
-            peptide_same_next_protein_dict = {}
+            protein_same_next_peptide_dict = {}
 
-            # for every entry in this group of peptides
-            for peptide in some_peptides:
+            # for every entry in this group of protein
+            for protein in same_degree_protein:
 
-                # get the protein
-                protein = peptide_protein_dict.get(peptide)
+                # get that protein
+                peptide = protein_peptide_dict.get(protein, [])
 
-                # sort their proteins
-                protein.sort()
-                next_same_protein = protein[0]
+                assert peptide != []
+
+                # sort their peptides
+                sorted_peptide = sorted(peptide)
+                next_same_peptide = sorted_peptide[0]
 
                 # group the peptide by their next same protein
-                peptide_same_next_protein_dict \
-                    .setdefault(next_same_protein, []).append(peptide)
+                protein_same_next_peptide_dict \
+                    .setdefault(next_same_peptide, []).append(protein)
 
-            # now in peptide_same_next_protein_list, peptide in each sublist
-            # have the same first protein
+            # now in protein_same_next_peptide_dict, protein in each sublist
+            # have the same first peptide
 
             # recursion
-            # each peptide list share the first protein on the list
-            for next_same_protein, peptide_list in peptide_same_next_protein_dict.items():
-                for peptide in peptide_list:
-                    # get the value
-                    protein = peptide_protein_dict.get(peptide)
+            # each protein list share the first peptide on the list
+            for next_same_peptide, protein_list in protein_same_next_peptide_dict.items():
+                for protein in protein_list:
+                    # get each protein
+                    protein = protein_peptide_dict.get(protein, [])
+                    assert protein != []
                     # remove that protein
-                    protein.remove(next_same_protein)
+                    protein.remove(next_same_peptide)
 
-                self.grouping_recursion(peptide_list, peptide_protein_dict)
+                protein_list.sort()
+                self.grouping_recursion(protein_list, protein_peptide_dict)
 
     """methods for step 2b: merging"""
 
-    def check_for_merging(self, neighbours_reorganized: List[List[Node]]) \
+    def check_for_merging_old(self, neighbours_reorganized: List[List[Node]]) \
             -> None:
         # all the protein neighbours in the same protein_neighbour_list
         # should have the same length
@@ -430,14 +480,11 @@ class Graph:
             for neighbour_pair in itertools.combinations(neighbour_list, 2):
                 if (
                         # only if the 2 both neighbour have not been deleted yet
-                        neighbour_pair[
-                            0].get_first_id() not in self.node_to_delete
+                        neighbour_pair[0].get_first_id() not in self.node_to_delete
                         and
-                        neighbour_pair[
-                            1].get_first_id() not in self.node_to_delete
-
+                        neighbour_pair[1].get_first_id() not in self.node_to_delete
                         # then compare their neighbours
-                ) and self.compare_neighbours(neighbour_pair):
+                ) and self.compare_neighbours_old(neighbour_pair):
 
                     # either both target and both decoy
                     assert neighbour_pair[0].get_target_decoy() == \
@@ -452,7 +499,7 @@ class Graph:
                     # TODO: bottleneck
                     self.key_add_id(neighbour_pair[0], id_list)
 
-    def compare_neighbours(self, node_pair: Tuple[Node, ...]) \
+    def compare_neighbours_old(self, node_pair: Tuple[Node, ...]) \
             -> bool:
         """
         if either one is None, return false
@@ -514,7 +561,7 @@ class Graph:
         # for all node
         for node in self.node_dict:
             # if not deleted
-            if node.get_first_id() not in self.node_to_delete:
+            if (node.get_first_id() + node.get_target_decoy()) not in self.node_to_delete:
                 # map its first id to the node object itself
                 self.accession_object[node.get_first_id()] = node
 
@@ -548,8 +595,8 @@ class Graph:
         # for all neighbouring white node that is not deleted, explore them
         for current_neighbour in neighbour_list:
             if self.is_white(current_neighbour) \
-                    and (current_neighbour.get_first_id()
-                         not in self.node_to_delete):
+                    and (current_neighbour.get_first_id() + current_neighbour.get_target_decoy()) \
+                    not in self.node_to_delete:
                 self.dfs(current_neighbour, a_component)
 
         self.set_explored(start_node)
@@ -561,6 +608,14 @@ class Graph:
         # through the dict accession_object
 
         component_node = self.accession_object[start_node.get_first_id()]
+
+        # TODO test
+        # it is in in
+        if start_node.get_first_id() == 'sp|Q9UI08-2|EVL_HUMAN':
+            print(component_node.get_id())
+
+        if start_node.get_first_id() == 'sp|Q9UI08-5|EVL_HUMAN':
+            print(component_node.get_id())
 
         if isinstance(component_node, Protein):
             a_component.add_protein(component_node, neighbour_list)
