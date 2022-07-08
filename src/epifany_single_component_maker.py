@@ -6,7 +6,7 @@ from pyopenms import AASequence, IdXMLFile, PeptideEvidence, PeptideHit, \
 
 
 def main(out_file_name):
-    
+
     # for proteins
     protein_id = ProteinIdentification()
     protein_id.setIdentifier("IdentificationRun1")
