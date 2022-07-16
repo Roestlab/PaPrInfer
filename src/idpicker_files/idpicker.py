@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Tuple
 import sqlite3
 import sys
 # import igraph
-from graph import Graph
-from components import Component
+from src.idpicker_files.graph import Graph
+from src.idpicker_files.components import Component
 from node import Peptide, Protein
 
 """main"""

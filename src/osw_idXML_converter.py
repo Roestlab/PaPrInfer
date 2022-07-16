@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 from pyopenms import AASequence, IdXMLFile, PeptideEvidence, PeptideHit, \
     PeptideIdentification, ProteinHit, ProteinIdentification
 
-from idpicker import get_all_link_for_peptide, get_all_link_for_protein, \
+from src.idpicker_files.idpicker import get_all_link_for_peptide, get_all_link_for_protein, \
     get_all_protein_accession, \
     get_all_protein_id
 

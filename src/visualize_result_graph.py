@@ -43,6 +43,17 @@ def get_graph_epifany(epifany_file) -> Tuple[
                                                                 []).append(
                         peptide_sequence)
 
+            else:
+                peptide_sequence = str(hit.getSequence())
+
+                protein_list = [ev.getProteinAccession() for ev in
+                                hit.getPeptideEvidences()]
+
+                print(hit.getMetaValue("target_decoy"))
+                print('peptide', peptide_sequence)
+                print('protein', protein_list)
+
+
     # the peptide_sequences are unique (in each list) since the list of
     # peptide_hits is unique
 
@@ -143,22 +154,18 @@ def write_into_text_file(epifany_protein_peptide_dict,
                          idpicker_protein_peptide_dict):
     lines = []
     for protein, peptide in epifany_protein_peptide_dict.items():
-        # print("epifany", protein)
-        # print("epifany", peptide)
         peptide_sequence = ' '.join(peptide)
 
         lines.append("epifany")
         lines.append(protein)
-        lines.append(peptide_sequence)
+        lines.append(peptide_sequence, '\n')
 
-    for protein, peptide in idpicker_protein_peptide_dict.items():
-        # print("idpicker", protein)
-        # print("idpicker", peptide)
-        peptide_sequence = ' '.join(peptide)
-
-        lines.append("idpicker")
-        lines.append(protein)
-        lines.append(peptide_sequence)
+    # for protein, peptide in idpicker_protein_peptide_dict.items():
+    #     peptide_sequence = ' '.join(peptide)
+    #
+    #     lines.append("idpicker")
+    #     lines.append(protein)
+    #     lines.append(peptide_sequence)
 
     with open('figures and files/all_result.txt', 'w') as f:
         for line in lines:

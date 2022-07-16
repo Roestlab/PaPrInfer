@@ -1,7 +1,5 @@
 import unittest
 
-from src import idpicker
-
 
 # class TestInitialization(unittest.TestCase):
 #     def test_(self):

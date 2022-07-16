@@ -17,7 +17,7 @@ def main(swissprot_fasta_file, uniprot_fasta_file):
 
     print(only_swissprot)
 
-    with open('figures and files/only_in_swissprot_protein_accessions.txt', 'w') as f:
+    with open('../figures and files/only_in_swissprot_protein_accessions.txt', 'w') as f:
         for line in list(only_swissprot):
             f.write(line)
             f.write('\n')
