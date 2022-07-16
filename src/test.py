@@ -1,37 +1,26 @@
 import sys
 
 import get_proteins_at_threshold
+import sys
 
+from pyopenms import IdXMLFile
 
 if __name__ == "__main__":
-    uniprot_epifany_file = sys.argv[1]
-    uniprot_idpicker_file = sys.argv[2]
-    threshold = sys.argv[3]
+    prot_ids = []
+    pep_ids = []
 
-    uniprot_epifany_proteins_accession = \
-        get_proteins_at_threshold.get_epifany_result(uniprot_epifany_file,
-                                                     remove_decoy=True,
-                                                     return_qvalue=False,
-                                                     threshold=threshold)
+    IdXMLFile().load(sys.argv[1], prot_ids, pep_ids)
 
-    with open('figures and files/epifany_accessions.txt', 'w') as f:
-        for line in list(uniprot_epifany_proteins_accession):
-            f.write(line)
-            f.write('\n')
+    for protein_id in prot_ids:
+        for hit in protein_id.getHits():
+            print("Protein hit accession:", hit.getAccession())
 
-    uniprot_idpicker_proteins_accession = \
-        get_proteins_at_threshold.get_idpicker_accessions(uniprot_idpicker_file,
-                                                          threshold=threshold)
+    for peptide_id in pep_ids:
+        # Peptide identification values
+      # PeptideHits
+        for hit in peptide_id.getHits():
+            print("Peptide hit sequence:", hit.getSequence())
 
-    with open('figures and files/idpicker_accessions.txt', 'w') as f:
-        for line in list(uniprot_idpicker_proteins_accession):
-            f.write(line)
-            f.write('\n')
+            print(" - Peptide hit score:", hit.getScore())
 
-
-    only_in_idpicker = uniprot_idpicker_proteins_accession.difference(uniprot_epifany_proteins_accession)
-
-    with open('figures and files/only_in_idpicker_accessions.txt', 'w') as f:
-        for line in list(only_in_idpicker):
-            f.write(line)
-            f.write('\n')
+            print(" - Mapping to proteins:", [ev.getProteinAccession() for ev in hit.getPeptideEvidences()])

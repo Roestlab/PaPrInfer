@@ -69,13 +69,13 @@ def fill_all_peptide_id():
                                  1.0852594434272e-05, False)
     peptide_id_list.append(peptide_id)
     peptide_id = fill_peptide_id('VSFELFADKVPK',
-                                 ['PPIA', 'A0A7I2V5J5', 'A0A7I2V4V1', 'C9J5S7',
+                                 ['PPIA', 'A0A7I2V5J5', 'C9J5S7',
                                   'F8WE65'],
                                  1.52664048381647e-05, False)
     peptide_id_list.append(peptide_id)
     peptide_id = fill_peptide_id('VSFELFADK',
-                                 ['A0A7I2V5J5', 'A0A7I2V4V1', 'C9J5S7',
-                                  'F8WE65'],
+                                 ['A0A7I2V5J5', 'C9J5S7',
+                                  'F8WE65', 'PPIA'],
                                  1.0852594434272e-05, False)
     peptide_id_list.append(peptide_id)
     peptide_id = fill_peptide_id('VNPTVFFDIAVDGEPLGR',
@@ -109,18 +109,17 @@ def fill_all_peptide_id():
     peptide_id = fill_peptide_id('TFDGGQCMFGPIIK',
                                  ['DECOY PAL4E', 'DECOY PAL4H', 'DECOY PAL4D', 'DECOY PAL4F', 'DECOY PAL4A',
                                   'DECOY A0A0H2UH3', 'DECOY PAL4C', 'DECOY PPIA', 'DECOY C9J5S7',
-                                  'F8WE65'],
+                                  'DECOY F8WE65'],
                                  0.68715324112149, True)
     peptide_id_list.append(peptide_id)
     peptide_id = fill_peptide_id('ATCIFFQSGNTNPGANAMSLIGSGTHR',
-                                 ['DECOY PAL4C', 'DECOY PAL4G', 'DECOY PPIA', 'DECOY C9J5S7', 'DECOY F8WE65',
-                                  'DECOY A0A7I2V4V1'],
+                                 ['DECOY PAL4C', 'DECOY PAL4G'],
                                  0.536328078844151, True)
     peptide_id_list.append(peptide_id)
     # same situation as TFDGGQCMFGPIIK
     peptide_id = fill_peptide_id('ATCIFFQSGNTNPGANAMSLIGPGTHR',
                                  ['DECOY PPIA', 'DECOY C9J5S7', 'DECOY F8WE65',
-                                  'A0A7I2V4V1'],
+                                  'DECOY A0A7I2V4V1'],
                                  0.407953386259084, True)
     peptide_id_list.append(peptide_id)
 
@@ -140,12 +139,12 @@ def fill_all_peptide_id():
                                  0.060715732750426, True)
     peptide_id_list.append(peptide_id)
     peptide_id = fill_peptide_id('PVKDAFLEFSVR',
-                                 ['DECOY PPIA', 'DECOY A0A7I2V5J5', 'DECOY A0A7I2V4V1', 'DECOY C9J5S7',
+                                 ['DECOY PPIA', 'DECOY A0A7I2V5J5', 'DECOY C9J5S7',
                                   'DECOY F8WE65'],
                                  0.623341508906059, True)
     peptide_id_list.append(peptide_id)
     peptide_id = fill_peptide_id('DAFLEFSVR',
-                                 ['DECOY PPIA', 'DECOY A0A7I2V4V1', 'DECOY C9J5S7',
+                                 ['DECOY PPIA', 'DECOY C9J5S7',
                                   'DECOY F8WE65'],
                                  0.691996399481143, True)
     peptide_id_list.append(peptide_id)
@@ -199,8 +198,7 @@ def fill_peptide_id(peptide_sequence, peptide_evidence_list, pep, is_decoy):
     peptide_id.setHigherScoreBetter(False)
 
     peptide_hit = make_peptide_hits(peptide_sequence, pep, is_decoy)
-    for ev in peptide_evidence_list:
-        make_peptide_evidence(peptide_hit, ev)
+    make_peptide_evidence(peptide_hit, peptide_evidence_list)
 
     peptide_id.setHits([peptide_hit])
 
@@ -218,11 +216,14 @@ def make_peptide_hits(peptide_sequence, pep, is_decoy):
     return peptide_hit
 
 
-def make_peptide_evidence(peptide_hit, protein_accession):
-    ev = PeptideEvidence()
-    ev.setProteinAccession(protein_accession)
-    peptide_hit.setPeptideEvidences([ev])
-    return ev
+def make_peptide_evidence(peptide_hit, protein_accession_list):
+
+    ev_list = []
+    for protein_accession in protein_accession_list:
+        ev = PeptideEvidence()
+        ev.setProteinAccession(protein_accession)
+        ev_list.append(ev)
+    peptide_hit.setPeptideEvidences(ev_list)
 
 
 if __name__ == "__main__":
