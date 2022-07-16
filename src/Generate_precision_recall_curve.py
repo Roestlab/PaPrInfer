@@ -1,7 +1,6 @@
 import sys
 import matplotlib.pyplot as plt
 import numpy as np
-
 import get_proteins_at_threshold
 
 
@@ -12,22 +11,22 @@ def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
     num_epifany_protein_list = []
     num_pyprophet_protein_list = []
 
-    get_protein_at_threshold(epifany_file, idpicker_file, pyprophet_file,
-                             num_epifany_protein_list,
-                             num_idpicker_protein_list,
-                             num_pyprophet_protein_list,
-                             threshold_list, zoom_degree)
+    get_protein_at_threshold_wrt_zoom_degree(epifany_file, idpicker_file, pyprophet_file,
+                                             num_epifany_protein_list,
+                                             num_idpicker_protein_list,
+                                             num_pyprophet_protein_list,
+                                             threshold_list, zoom_degree)
 
     plot_curves(include_epifany, num_epifany_protein_list,
                 num_idpicker_protein_list, num_pyprophet_protein_list,
                 threshold_list, zoom_degree)
 
 
-def get_protein_at_threshold(epifany_file, idpicker_file, pyprophet_file,
-                             num_epifany_protein_list,
-                             num_idpicker_protein_list,
-                             num_pyprophet_protein_list,
-                             threshold_list, zoom_degree):
+def get_protein_at_threshold_wrt_zoom_degree(epifany_file, idpicker_file, pyprophet_file,
+                                             num_epifany_protein_list,
+                                             num_idpicker_protein_list,
+                                             num_pyprophet_protein_list,
+                                             threshold_list, zoom_degree):
     # remember it is start, stop, step
     if zoom_degree == 'normal':
         loop_range = [0.1, 1.01, 0.1]
@@ -47,7 +46,9 @@ def get_protein_at_threshold(epifany_file, idpicker_file, pyprophet_file,
         num_epifany_protein, num_idpicker_protein, num_pyprophet_protein = \
             get_proteins_at_threshold.main(epifany_file, idpicker_file,
                                            pyprophet_file,
-                                           str(threshold), True, False)
+                                           str(threshold), remove_decoy=True,
+                                           return_qvalue=False, return_distinct_protein=True,
+                                           return_mapping=False)
 
         threshold_list.append(threshold)
         num_idpicker_protein_list.append(num_idpicker_protein)

@@ -156,16 +156,16 @@ def write_into_text_file(epifany_protein_peptide_dict,
     for protein, peptide in epifany_protein_peptide_dict.items():
         peptide_sequence = ' '.join(peptide)
 
-        lines.append("epifany")
+        lines.append("\nepifany")
         lines.append(protein)
-        lines.append(peptide_sequence, '\n')
+        lines.append(peptide_sequence)
 
-    # for protein, peptide in idpicker_protein_peptide_dict.items():
-    #     peptide_sequence = ' '.join(peptide)
-    #
-    #     lines.append("idpicker")
-    #     lines.append(protein)
-    #     lines.append(peptide_sequence)
+    for protein, peptide in idpicker_protein_peptide_dict.items():
+        peptide_sequence = ' '.join(peptide)
+
+        lines.append("idpicker")
+        lines.append(protein)
+        lines.append(peptide_sequence)
 
     with open('figures and files/all_result.txt', 'w') as f:
         for line in lines:

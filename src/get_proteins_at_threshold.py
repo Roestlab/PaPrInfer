@@ -2,31 +2,37 @@
 import sqlite3
 
 # noinspection PyUnresolvedReferences
-from typing import Any, List, Set, Union
+from typing import Any, Dict, List, Set, Union
 
 from pyopenms import IDFilter, IdXMLFile
 
 
 def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
-         threshold: str, remove_decoy: bool, return_qvalue: bool):
+         threshold: str, remove_decoy: bool, return_qvalue: bool,
+         return_distinct_protein: bool, return_mapping: bool):
+
     num_epifany_distinct_protein = len(get_epifany_result(epifany_file,
                                                           threshold,
                                                           remove_decoy,
-                                                          return_qvalue))
+                                                          return_qvalue,
+                                                          return_distinct_protein,
+                                                          return_mapping))
 
     num_idpicker_distinct_protein = get_idpicker_numbers(idpicker_file,
                                                          threshold)
 
-    num_pyprophet_distinct_protein = get_pyprophet_result(pyprophet_file,
-                                                          threshold)
+    num_pyprophet_distinct_protein = get_pyprophet_numbers(pyprophet_file,
+                                                           threshold)
 
     return num_epifany_distinct_protein, \
         num_idpicker_distinct_protein, \
         num_pyprophet_distinct_protein
 
 
-def get_epifany_result(epifany_file: str, threshold: str, remove_decoy: bool, return_qvalue: bool) -> \
-        Union[Set[str], List[int]]:
+def get_epifany_result(epifany_file: str, threshold: str, remove_decoy: bool,
+                       return_qvalue: bool, return_distinct_protein: bool,
+                       return_mapping: bool) -> \
+        Union[Set[str], List[int], Dict[str, int]]:
     # getting all protein from epifany
     prot_ids = []
     pep_ids = []
@@ -94,8 +100,12 @@ def get_epifany_result(epifany_file: str, threshold: str, remove_decoy: bool, re
 
     if return_qvalue:
         return qvalue_list
-    else:
+    elif return_distinct_protein:
         return epifany_distinct_proteins_groups
+    elif return_mapping:
+        return protein_group_probability
+    else:
+        print("you are returning nothing")
 
 
 def remove_decoy_protein_groups(prot_ids) -> None:
@@ -206,7 +216,7 @@ def get_idpicker_accessions(idpicker_file: str, threshold: str) -> Set[str]:
 
 
 
-def get_pyprophet_result(pyprophet_file: str, threshold: str) -> int:
+def get_pyprophet_numbers(pyprophet_file: str, threshold: str) -> int:
     # also need the file with swissprot instead of uniprot
 
     con = sqlite3.connect(pyprophet_file)
