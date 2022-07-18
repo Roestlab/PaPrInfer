@@ -32,7 +32,7 @@ def main(epifany_file: str, idpicker_file: str, pyprophet_file: str,
 def get_epifany_result(epifany_file: str, threshold: str, remove_decoy: bool,
                        return_qvalue: bool, return_distinct_protein: bool,
                        return_mapping: bool) -> \
-        Union[Set[str], List[int], Dict[str, int]]:
+        Union[Set[str], List[int], Dict[str, List[int]]]:
     # getting all protein from epifany
     prot_ids = []
     pep_ids = []

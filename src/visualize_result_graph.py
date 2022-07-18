@@ -5,7 +5,6 @@ from pyopenms import IdXMLFile
 from get_proteins_at_threshold import remove_decoy_protein_groups
 import sqlite3
 
-
 """this does 3 things, 
 1. write all result of idpicker and epifany into a text file
 so it is easy to text search it
@@ -18,7 +17,7 @@ so it is easy to text search it
 
 
 def get_graph_epifany(epifany_file) -> Tuple[
-        Dict[str, List[Any]], Dict[Any, Any]]:
+    Dict[str, List[Any]], Dict[Any, Any]]:
     prot_ids = []
     pep_ids = []
 
@@ -31,33 +30,22 @@ def get_graph_epifany(epifany_file) -> Tuple[
     for peptide_id in pep_ids:
         # PeptideHits
         for hit in peptide_id.getHits():
-            if hit.getMetaValue("target_decoy") == "target":
+            # if hit.getMetaValue("target_decoy") == "target":
 
-                peptide_sequence = str(hit.getSequence())
+            peptide_sequence = str(hit.getSequence())
 
-                protein_list = [ev.getProteinAccession() for ev in
-                                hit.getPeptideEvidences()]
+            protein_list = [ev.getProteinAccession() for ev in
+                            hit.getPeptideEvidences()]
 
-                for protein in protein_list:
-                    epifany_all_protein_peptide_dict.setdefault(protein,
-                                                                []).append(
-                        peptide_sequence)
-
-            else:
-                peptide_sequence = str(hit.getSequence())
-
-                protein_list = [ev.getProteinAccession() for ev in
-                                hit.getPeptideEvidences()]
-
-                print(hit.getMetaValue("target_decoy"))
-                print('peptide', peptide_sequence)
-                print('protein', protein_list)
-
+            for protein in protein_list:
+                epifany_all_protein_peptide_dict.setdefault(protein,
+                                                            []).append(
+                    peptide_sequence)
 
     # the peptide_sequences are unique (in each list) since the list of
     # peptide_hits is unique
 
-    remove_decoy_protein_groups(prot_ids)
+    # remove_decoy_protein_groups(prot_ids)
 
     # select the subset where the protein is inferred
     protein_peptide_dict = {}
@@ -65,7 +53,7 @@ def get_graph_epifany(epifany_file) -> Tuple[
     # read the protein groups, after remove all decoy protein groups
     for protein_id in prot_ids:
 
-        for group in protein_id.getProteinGroups():
+        for group in protein_id.getIndistinguishableProteins():
 
             # list of bytes
             accession_list_bytes = group.accessions
