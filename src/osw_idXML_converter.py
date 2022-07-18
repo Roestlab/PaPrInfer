@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 from pyopenms import AASequence, IdXMLFile, PeptideEvidence, PeptideHit, \
     PeptideIdentification, ProteinHit, ProteinIdentification
 
-from src.idpicker_files.idpicker import get_all_link_for_peptide, get_all_link_for_protein, \
+from idpicker import get_all_link_for_peptide, get_all_link_for_protein, \
     get_all_protein_accession, \
     get_all_protein_id
 
@@ -190,8 +190,8 @@ def store_on_disk(out_file_name, protein_id_list, peptide_id_list):
 def main(input_file: str, out_file: str, context: str, run_id: str,
          pep_limit: str, q_limit: str) -> None:
     run_id = int(run_id)
-    pep_limit = int(pep_limit)
-    q_limit = int(q_limit)
+    pep_limit = float(pep_limit)
+    q_limit = float(q_limit)
 
     con = begin_connection(input_file)
 

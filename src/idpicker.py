@@ -5,8 +5,8 @@ from typing import Any, Dict, List, Tuple
 import sqlite3
 import sys
 # import igraph
-from src.idpicker_files.graph import Graph
-from src.idpicker_files.components import Component
+from graph import Graph
+from components import Component
 from node import Peptide, Protein
 
 """main"""
@@ -383,10 +383,6 @@ def get_all_protein_accession(con) -> Dict[str, List[str]]:
         # empty list here. if it was then it returns the value
         protein_accession_dict. \
             setdefault(protein_sqlite_id, []).extend(stripped_accession_sublist)
-
-        # TODO test
-        if 'sp|Q9UI08-5|EVL_HUMAN' in stripped_accession_sublist:
-            print(protein_sqlite_id)
 
     c.close()
 

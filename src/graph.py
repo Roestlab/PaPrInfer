@@ -2,7 +2,7 @@ import bisect
 import itertools
 from typing import Dict, List, Tuple
 
-from src.idpicker_files.components import Component
+from components import Component
 from node import Node, Protein, Peptide
 
 
