@@ -69,11 +69,12 @@ def plot_curves(include_epifany, num_epifany_protein_list,
         plt.plot(threshold_list, num_epifany_protein_list, "-s", color='red',
                  label="Epifany Protein Groups")
     # plt.title("Precision Recall Curve: Swiss-Prot")
-    plt.title("Precision Recall Curve: UniProt")
-    plt.xlabel("FDR threshold")
+    # plt.title("Precision Recall Curve: UniProt")
+    plt.title("PEP and Protein: UniProt ")
+    plt.xlabel("PEP")
     plt.ylabel("Number of proteins")
     # plt.legend(loc='lower right')
-    plt.legend(loc='center right')
+    plt.legend()
 
     filename = zoom_degree + '.pdf'
     plt.savefig(filename)
@@ -98,11 +99,12 @@ def plot_curves(include_epifany, num_epifany_protein_list,
                  label="Epifany Protein Groups Increase")
     plt.plot(threshold_list, percent_increase_idpicker_list, "-o", color='blue',
              label="Idpicker Protein Groups Increase")
-    plt.title("Percentage increase of the precise recall curves in uniprot")
-    plt.xlabel("FDR threshold")
+    # plt.title("Percentage increase of the precision recall curves in uniprot")
+    plt.title("PEP and Percentage increase")
+    plt.xlabel("PEP")
     plt.ylabel("Percentage")
     # plt.legend(loc='lower right')
-    plt.legend(loc='center right')
+    plt.legend()
     filename = 'percent ' + zoom_degree + '.pdf'
     plt.savefig(filename)
     plt.show()

@@ -46,18 +46,7 @@ class Component:
             # set as selected, so subset is unselected ones
             currently_selected_protein.set_selected()
 
-            # TODO test
-            # its not selected
-            if 'sp|Q9UI08-2|EVL_HUMAN' in currently_selected_protein.get_id():
-                print('reducing', currently_selected_protein.get_id())
-
-            if 'sp|Q9UI08-5|EVL_HUMAN' in currently_selected_protein.get_id():
-                print("we found 5")
-                for protein in self._protein_dict:
-                    print("other protein id", protein.get_id())
-
-
-            # do 2 things, and check 2 things
+            # do 3 things, and check 2 things
             # 1. do set uncovered peptide as covered
             # 2. do find max score among uncovered peptide
             # 3. do map those uncovered peptide to the protein
