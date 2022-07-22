@@ -41,7 +41,9 @@ def get_all_protein_accession(uniprot_epifany_file, uniprot_idpicker_file,
         get_proteins_at_threshold.get_epifany_result(uniprot_epifany_file,
                                                      remove_decoy=True,
                                                      return_qvalue=False,
-                                                     threshold=threshold)
+                                                     threshold=threshold,
+                                                     return_mapping=False,
+                                                     return_distinct_protein=True)
 
     uniprot_idpicker_proteins_accession = \
         get_proteins_at_threshold.get_idpicker_accessions(uniprot_idpicker_file,
@@ -51,7 +53,9 @@ def get_all_protein_accession(uniprot_epifany_file, uniprot_idpicker_file,
         get_proteins_at_threshold.get_epifany_result(swissprot_epifany_file,
                                                      remove_decoy=True,
                                                      return_qvalue=False,
-                                                     threshold=threshold)
+                                                     threshold=threshold,
+                                                     return_distinct_protein=True,
+                                                     return_mapping=False)
 
     swissprot_idpicker_proteins_accession = \
         get_proteins_at_threshold.get_idpicker_accessions(swissprot_idpicker_file,

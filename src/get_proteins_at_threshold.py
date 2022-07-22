@@ -87,7 +87,12 @@ def get_epifany_result(epifany_file: str, threshold: str, remove_decoy: bool,
 
     # protein_group_probability is a dict
     for groups in protein_group_probability:
+
+        # qvalue
         probability = min(protein_group_probability[groups])
+
+        # pep, since probability here give pp
+        probability = 1 - min(protein_group_probability[groups])
 
         qvalue_list.append(probability)
 
@@ -109,7 +114,7 @@ def get_epifany_result(epifany_file: str, threshold: str, remove_decoy: bool,
 
 
 def remove_decoy_protein_groups(prot_ids) -> None:
-    # first remove all the decoy protein hits, it remove from getHits()
+    # first remove all the decoy protein hits, it is remove from getHits()
     IDFilter().removeDecoyHits(prot_ids)
     for protein_id in prot_ids:
         # then get the protein groups
@@ -137,21 +142,22 @@ def get_idpicker_numbers(idpicker_file: str, threshold: str) -> int:
     c = con.cursor()
 
     # PEP
-    # c.execute(
-    #     """SELECT PROTEIN_GROUP.PROTEIN_GROUP_ID, PROTEIN_GROUP.PROTEIN_ID, SCORE_PROTEIN_GROUP.PEP
-    #     FROM PROTEIN_GROUP
-    #     INNER JOIN SCORE_PROTEIN_GROUP ON PROTEIN_GROUP.PROTEIN_GROUP_ID = SCORE_PROTEIN_GROUP.PROTEIN_GROUP_ID
-    #     WHERE PROTEIN_GROUP.DECOY = 0 AND PEP <= :threshold""", {'threshold': float(threshold)}
-    # )
-
-    # q_value
     c.execute(
-        """SELECT DISTINCT PROTEIN_GROUP.PROTEIN_GROUP_ID, SCORE_PROTEIN_GROUP.QVALUE
+        """SELECT DISTINCT PROTEIN_GROUP.PROTEIN_GROUP_ID, SCORE_PROTEIN_GROUP.PEP
         FROM PROTEIN_GROUP
         INNER JOIN SCORE_PROTEIN_GROUP ON PROTEIN_GROUP.PROTEIN_GROUP_ID = SCORE_PROTEIN_GROUP.PROTEIN_GROUP_ID
-        WHERE PROTEIN_GROUP.DECOY = 0 AND SCORE_PROTEIN_GROUP.QVALUE <= :threshold""",
+        WHERE PROTEIN_GROUP.DECOY = 0 AND PEP <= :threshold""",
         {'threshold': float(threshold)}
     )
+
+    # q_value
+    # c.execute(
+    #     """SELECT DISTINCT PROTEIN_GROUP.PROTEIN_GROUP_ID, SCORE_PROTEIN_GROUP.QVALUE
+    #     FROM PROTEIN_GROUP
+    #     INNER JOIN SCORE_PROTEIN_GROUP ON PROTEIN_GROUP.PROTEIN_GROUP_ID = SCORE_PROTEIN_GROUP.PROTEIN_GROUP_ID
+    #     WHERE PROTEIN_GROUP.DECOY = 0 AND SCORE_PROTEIN_GROUP.QVALUE <= :threshold""",
+    #     {'threshold': float(threshold)}
+    # )
 
     idpicker_q_values = []
 
