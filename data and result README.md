@@ -41,14 +41,17 @@ set of data (5 and 6)
 
 
     projects/def-hroest/data/diaPASEFManuscriptOutput/merged_-1.osw
-    projects/def-hroest/data/diaPASEFManuscriptOutput/merged_-1.tsv 
+   
+    projects/def-hroest/data/diaPASEFManuscriptOutput/merged_-1.tsv
+   
     projects/def-hroest/data/diaPASEFManuscriptOutput/pyprophet_export.tsv 
 
 
-6. This is the dataset using uniprot/trembl database
+7. This is the dataset using uniprot/trembl database
 
 
     projects/def-hroest/data/josh_kai_2022/2021-12-23-proteinIsoformRslts.osw
+   
     projects/def-hroest/data/josh_kai_2022/peptide.tsv
 
 peptide.tsv is one of the output files from msfragger, which is needed
