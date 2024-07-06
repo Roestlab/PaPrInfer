@@ -5,9 +5,9 @@ from typing import Any, Dict, List, Tuple
 import sqlite3
 import sys
 # import igraph
-from graph import Graph
-from components import Component
-from node import Peptide, Protein
+from src.main_workflow_idpicker_and_epifany_code.graph import Graph
+from src.main_workflow_idpicker_and_epifany_code.components import Component
+from src.main_workflow_idpicker_and_epifany_code.node import Peptide, Protein
 
 """main"""
 

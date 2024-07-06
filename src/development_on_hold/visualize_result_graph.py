@@ -155,7 +155,7 @@ def write_into_text_file(epifany_protein_peptide_dict,
         lines.append(protein)
         lines.append(peptide_sequence)
 
-    with open('figures and files/all_result.txt', 'w') as f:
+    with open('../figures and files/all_result.txt', 'w') as f:
         for line in lines:
             f.write(line)
             f.write('\n')

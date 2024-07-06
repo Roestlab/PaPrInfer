@@ -1,8 +1,9 @@
 from scipy.interpolate import interp1d
 import sys
 
-from get_proteins_at_threshold import get_epifany_result
+from idpicker_and_get_proteins_at_threshold import get_epifany_result
 
+from idxml_txt_converter import write_into_txt_file, write_into_txt_file_2
 
 
 
@@ -20,9 +21,11 @@ def main(epifany_file_pep, epifany_file_qvalue):
     all_accession_pp_qvalue_list.sort(key=lambda x: x[1], reverse=True)
     target_accession_pp_qvalue_list.sort(key=lambda x: x[1], reverse=True)
 
-    write_into_txt_file(all_accession_pp_qvalue_list)
+    write_into_txt_file(all_accession_pp_qvalue_list,
+                        'figures and files/protein_group_pep_qvalue.txt')
 
-    sorted_target_accession_list, sorted_target_pp_list, sorted_target_qvalue_list = split_into_three_list(
+    sorted_target_accession_list, sorted_target_pp_list,\
+        sorted_target_qvalue_list = split_into_three_list(
         target_accession_pp_qvalue_list)
 
     # find the lowest pep for each qvalue, that is what need to use here for interpolate
@@ -33,8 +36,6 @@ def main(epifany_file_pep, epifany_file_qvalue):
     sorted_target_pep_list = convert_to_pp(sorted_target_pp_list)
 
     new_qvalue = interpolation_function(sorted_target_pep_list)
-
-    # what to do with the newqvalue
 
     write_into_txt_file_2(sorted_target_accession_list, sorted_target_pep_list, new_qvalue)
 
@@ -126,25 +127,7 @@ def get_accession_qvalue_pep(epifany_file_pep, epifany_file_qvalue,
     return accession_pep_qvalue_list
 
 
-def write_into_txt_file(accession_pep_qvalue_list):
-    with open('figures and files/protein_group_pep_qvalue.txt', 'w') as f:
-        for protein_group in accession_pep_qvalue_list:
-            accessions_list = protein_group[0]
-            pep = protein_group[1]
-            qvalue = protein_group[2]
 
-            for accessions in accessions_list:
-                f.write(str(accessions))
-            f.write('\n')
-
-            f.write('pp: ')
-            f.write(str(pep))
-            f.write('\n')
-
-            f.write('qvalue: ')
-            f.write(str(qvalue))
-            f.write('\n')
-            f.write('\n')
 
 def convert_to_pp(pp_list):
     pep_list = []
@@ -154,25 +137,7 @@ def convert_to_pp(pp_list):
     return pep_list
 
 
-def write_into_txt_file_2(sorted_target_accession_list, sorted_target_pp_list, new_qvalue):
-    with open('figures and files/protein_group_pep_new_qvalue.txt', 'w') as f:
-        for i in range(len(sorted_target_accession_list)):
-            accessions_list = sorted_target_accession_list[i]
-            pep = sorted_target_pp_list[i]
-            qvalue = new_qvalue[i]
 
-            for accessions in accessions_list:
-                f.write(str(accessions))
-            f.write('\n')
-
-            f.write('pep: ')
-            f.write(str(pep))
-            f.write('\n')
-
-            f.write('qvalue: ')
-            f.write(str(qvalue))
-            f.write('\n')
-            f.write('\n')
 
 if __name__ == "__main__":
     main(sys.argv[1], sys.argv[2])

@@ -42,7 +42,7 @@ def main(swissprot_library, uniprot_library):
     print('uniprot', len(first_aa_list_uniprot))
     print(Counter(first_aa_list_uniprot))
 
-    with open('figures and files/library unique peptides.txt', 'w') as f:
+    with open('../figures and files/library unique peptides.txt', 'w') as f:
         for line in library_unique_list:
             f.write(line)
             f.write('\n')

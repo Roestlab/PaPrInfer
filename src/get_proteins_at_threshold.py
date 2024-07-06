@@ -235,21 +235,21 @@ def get_pyprophet_numbers(pyprophet_file: str, threshold: str) -> int:
         FROM SCORE_PROTEIN
         INNER JOIN PROTEIN ON PROTEIN.ID = SCORE_PROTEIN.PROTEIN_ID
         WHERE SCORE_PROTEIN.CONTEXT = 'global'
-        AND SCORE_PROTEIN.PEP <= 1
+        AND SCORE_PROTEIN.PEP <= :threshold
         AND PROTEIN.DECOY = 0
         """, {'threshold': float(threshold)}
     )
 
-    c.execute(
-        """ 
-        SELECT SCORE_PROTEIN.PROTEIN_ID
-        FROM SCORE_PROTEIN
-        INNER JOIN PROTEIN ON PROTEIN.ID = SCORE_PROTEIN.PROTEIN_ID
-        WHERE SCORE_PROTEIN.CONTEXT = 'global'
-        AND SCORE_PROTEIN.QVALUE <= 1
-        AND PROTEIN.DECOY = 0
-        """, {'threshold': float(threshold)}
-    )
+    # c.execute(
+    #     """
+    #     SELECT SCORE_PROTEIN.PROTEIN_ID
+    #     FROM SCORE_PROTEIN
+    #     INNER JOIN PROTEIN ON PROTEIN.ID = SCORE_PROTEIN.PROTEIN_ID
+    #     WHERE SCORE_PROTEIN.CONTEXT = 'global'
+    #     AND SCORE_PROTEIN.QVALUE <= :threshold
+    #     AND PROTEIN.DECOY = 0
+    #     """, {'threshold': float(threshold)}
+    # )
 
     pyprophet_proteins = []
 

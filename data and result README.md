@@ -3,7 +3,7 @@
 Due to the size of the data files, they are not 
 stored on GitHub. As well, the nature of sqlite 
 files makes the result and the data exist in the 
-same file
+same file (result only on the local copy of the data)
 
 There are 4 data set that is intended for this
 program, but only one of them was actually
@@ -20,7 +20,10 @@ Name:
 not used because it does not have
 degenerate peptides
 
-3. The other one does not have pyprophet scoring and has an empty 
+
+    20190507_diaPASEF
+
+4. The other one does not have pyprophet scoring and has an empty 
 feature_ms2 table (so running pyprophet is not possible)
 and IDPicker uses the q-value of the peptides 
 which comes from pyprophet scoring.
@@ -53,3 +56,9 @@ set of data (5 and 6)
 
 peptide.tsv is one of the output files from msfragger, which is needed
 for adding non-razor protein.
+
+(Project > kairen_september2022)
+I have also uploaded 5 and 6 to google drive. 
+
+
+4 is in (Project > diaPASEF)

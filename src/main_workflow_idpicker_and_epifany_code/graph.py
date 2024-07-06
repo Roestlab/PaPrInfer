@@ -2,7 +2,7 @@ import bisect
 import itertools
 from typing import Dict, List, Tuple
 
-from components import Component
+from src.main_workflow_idpicker_and_epifany_code.components import Component
 from node import Node, Protein, Peptide
 
 
